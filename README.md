@@ -23,12 +23,10 @@ La APK no tiene una copia del HTML: Gradle lo toma directo de `web/` al compilar
 
 1. Cambiar `const VERSION='x.y.z'` en `web/toma_tiempos.html`.
 2. Commit y push a `main`.
-3. Crear el tag `vx.y.z` (igual a VERSION) y pushearlo.
 
-GitHub Actions compila y publica en **Releases** la APK y el HTML de esa versión.
-Si el tag no coincide con VERSION, la compilación falla a propósito.
+Si esa VERSION todavía no tiene release, GitHub Actions compila, crea el tag `vx.y.z` y publica en **Releases** la APK y el HTML.
 
-Cada push a `main` (sin tag) también compila; la APK de prueba queda en la pestaña **Actions** → la corrida → *Artifacts*.
+Un push sin cambiar VERSION también compila, pero no publica: la APK de prueba (`x.y.z-dev.N`) queda en **Actions** → la corrida → *Artifacts*.
 
 ## Instalar en Android
 

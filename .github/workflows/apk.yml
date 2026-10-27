@@ -22,19 +22,26 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Si VERSION del HTML todavía no tiene release (tag v<VERSION>), esta corrida la publica.
+      # Si ya existe, compila igual una APK de prueba (-dev) que queda en Artifacts.
       - name: Versión
         id: ver
         run: |
           H=$(grep -oP "const VERSION='\K[^']+" web/toma_tiempos.html)
+          if [ -z "$H" ]; then echo "::error::No se encontró const VERSION en el HTML"; exit 1; fi
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             V="${GITHUB_REF_NAME#v}"
-            if [ "$H" != "$V" ]; then
-              echo "::error::VERSION del HTML ($H) no coincide con el tag ($V)"; exit 1
-            fi
+            if [ "$H" != "$V" ]; then echo "::error::VERSION del HTML ($H) no coincide con el tag ($V)"; exit 1; fi
+            PUB=true
+          elif git ls-remote --exit-code --tags origin "refs/tags/v$H" >/dev/null; then
+            V="$H-dev.${GITHUB_RUN_NUMBER}"; PUB=false
           else
-            V="$H-dev.${GITHUB_RUN_NUMBER}"
+            V="$H"; PUB=true
           fi
           echo "name=$V" >> "$GITHUB_OUTPUT"
+          echo "publicar=$PUB" >> "$GITHUB_OUTPUT"
+          echo "tag=v$H" >> "$GITHUB_OUTPUT"
+          echo "Versión: $V · publicar release: $PUB"
 
       - name: Compilar
         working-directory: android
@@ -52,8 +59,11 @@ jobs:
           path: out/*
 
       - name: Publicar release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.ver.outputs.publicar == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Toma de Tiempos ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: out/*
           generate_release_notes: true
