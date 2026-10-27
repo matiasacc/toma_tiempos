@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Versión: la pasa el workflow (-PvCode / -PvName). En local usa estos valores por defecto.
+def vCode = Integer.parseInt((project.findProperty('vCode') ?: '1').toString())
+def vName = (project.findProperty('vName') ?: '0.0.0-local').toString()
+
+android {
+    namespace 'ar.matiasacc.tomatiempos'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ar.matiasacc.tomatiempos'
+        minSdk 26
+        targetSdk 34
+        versionCode vCode
+        versionName vName
+    }
+
+    // Llave fija: todas las APK salen firmadas igual, así cada versión nueva se instala encima
+    // de la anterior sin perder los datos. Si se cambia la llave, hay que desinstalar la app.
+    signingConfigs {
+        fija {
+            storeFile file('../keystore/toma_tiempos.jks')
+            storePassword 'tomatiempos'
+            keyAlias 'tomatiempos'
+            keyPassword 'tomatiempos'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.fija
+        }
+        debug {
+            signingConfig signingConfigs.fija
+        }
+    }
+
+    // El HTML se toma directo de /web: es la misma fuente para el navegador y para la APK.
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../web']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.core:core:1.13.1'
+}

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Toma de Tiempos</title>
+<style>
+:root{--bg:#f3f3f1;--fg:#1c1c1c;--mut:#6a6a66;--line:#cbcbc6;--card:#fff;--acc:#1f4e79;--accfg:#fff;--warn:#8a5a00;--bad:#8b1e1e}
+@media (prefers-color-scheme:dark){:root{--bg:#151515;--fg:#e6e6e3;--mut:#9a9a95;--line:#3a3a37;--card:#1f1f1f;--acc:#3f73a3;--accfg:#fff;--warn:#d09a3a;--bad:#d06464}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+nav{display:flex;gap:4px;padding:6px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{flex:1;padding:10px 4px}
+nav button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+main{max-width:900px;margin:0 auto;padding:12px 16px 40px}
+button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.4}
+button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+input,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:5px;padding:8px;width:100%}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 8px;font-weight:600}
+.mut{color:var(--mut)}
+.fila{display:flex;gap:8px;margin:10px 0}
+.fila>*{flex:1}
+/* Toma */
+.estado{color:var(--mut);font-size:14px}
+.elem{font-size:26px;font-weight:600;margin:6px 0 2px;min-height:34px}
+.sig{color:var(--mut);font-size:14px;min-height:18px}
+.crono{font:600 64px/1.1 ui-monospace,Consolas,monospace;text-align:center;margin:14px 0 4px;font-variant-numeric:tabular-nums}
+.tot{text-align:center;color:var(--mut);font-variant-numeric:tabular-nums}
+.big{width:100%;height:30vh;min-height:150px;font-size:34px;font-weight:700;margin-top:14px;border-radius:10px}
+.pausabox{border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:8px;margin:8px 0}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mut);margin-top:8px}
+.chk input{width:auto}
+.ult{font:13px ui-monospace,Consolas,monospace;color:var(--mut);margin-top:10px}
+/* Datos */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid label{font-size:13px;color:var(--mut)}
+.el{display:flex;gap:6px;margin:6px 0;align-items:center}
+.el span{width:24px;text-align:right;color:var(--mut)}
+.el button{padding:8px 10px}
+/* Resultados */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+th{color:var(--mut);font-weight:600}
+td select{width:auto;padding:2px;font-size:12px}
+.p{color:var(--warn);font-size:11px}
+.lista .it{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
+.lista .it div{flex:1}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:.92}
+</style>
+</head>
+<body>
+<nav>
+  <button data-t="toma">Toma</button>
+  <button data-t="datos">Datos</button>
+  <button data-t="res">Resultados</button>
+  <button data-t="arch">Archivo</button>
+</nav>
+<main>
+
+<section id="v-toma">
+  <div class="estado" id="tEstado"></div>
+  <div class="elem" id="tElem"></div>
+  <div class="sig" id="tSig"></div>
+  <div class="crono" id="tCrono">0:00.0</div>
+  <div class="tot" id="tTot"></div>
+  <div class="tot" id="tNec" style="font-size:13px;margin-top:4px"></div>
+  <button id="bBig" class="big pri">INICIAR</button>
+  <div id="pausaBox" class="pausabox" hidden>
+    En pausa — este tiempo no se suma al elemento.
+    <input id="pMotivo" placeholder="Motivo (opcional)" style="margin-top:6px">
+  </div>
+  <div class="fila">
+    <button id="bPausa">Pausa</button>
+    <button id="bUndo">Deshacer corte</button>
+    <button id="bFin">Finalizar</button>
+  </div>
+  <label class="chk"><input type="checkbox" id="cEnc"> Encadenar ciclos (al cortar el último elemento arranca el ciclo siguiente)</label>
+  <div id="tUlt" class="ult"></div>
+</section>
+
+<section id="v-datos" hidden>
+  <h2>Encabezado</h2>
+  <div class="grid" id="cab"></div>
+  <h2>Desglose de elementos</h2>
+  <div id="els"></div>
+  <div class="fila"><button id="bAddEl">+ Agregar elemento</button></div>
+  <div id="lockMsg" class="mut" style="font-size:13px"></div>
+  <h2>Plantillas</h2>
+  <div class="fila"><select id="selTpl"></select><button id="bLoadTpl">Cargar</button></div>
+  <div class="fila"><button id="bSaveTpl">Guardar desglose como plantilla</button><button id="bDelTpl">Borrar plantilla</button></div>
+</section>
+
+<section id="v-res" hidden>
+  <h2>Tiempos por elemento [s]</h2>
+  <div class="tw" id="tabla"></div>
+  <p class="mut" style="font-size:12px">Valoración: L = lento · N = normal · R = rápido. <span class="p">p</span> = elemento con pausa descontada.</p>
+  <h2>Observaciones necesarias</h2>
+  <div class="fila" style="align-items:center"><span class="mut" style="flex:0 0 auto">Precisión ±</span>
+    <select id="selPrec" style="flex:0 0 90px"><option value="5">5 %</option><option value="10">10 %</option></select>
+    <span class="mut" style="flex:1">nivel de confianza 95 %</span></div>
+  <p class="mut" style="font-size:12px;margin:4px 0">Método estadístico: N' = [ (z/k)·√(N·Σx² − (Σx)²) / Σx ]², con z = 2 (≈95 %) y k = precisión (z/k = 40 para ±5 %). N = observaciones tomadas, x = tiempo de cada observación.</p>
+  <h2>Notas por ciclo</h2>
+  <div id="notas"></div>
+</section>
+
+<section id="v-arch" hidden>
+  <h2>Toma actual</h2>
+  <div class="fila"><button class="pri" id="bGuardar">Guardar</button><button id="bCSV">Exportar CSV</button></div>
+  <div class="fila" id="filaShare" hidden><button id="bShare">Compartir CSV</button></div>
+  <div class="fila"><button id="bNueva">Nueva toma</button></div>
+  <h2>Tomas guardadas</h2>
+  <div class="lista" id="hist"></div>
+  <p class="mut" style="font-size:12px;margin-top:20px" id="verTxt"></p>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const VERSION='1.0.0';
+/* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
+const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
+const LS_CUR='tt_actual',LS_HIST='tt_historial',LS_TPL='tt_plantillas';
+const $=s=>document.querySelector(s);
+const pad=(n,l=2)=>String(n).padStart(l,'0');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function hoy(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function fmtE(ms){ms=Math.max(0,ms);const d=Math.floor(ms/100)%10,s=Math.floor(ms/1000)%60,m=Math.floor(ms/60000);return m+':'+pad(s)+'.'+d}
+function fmtH(ts){const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1500)}
+const VAL={'':'','L':'Lento','N':'Normal','R':'Rápido'};
+const CAB=[['estudio','Estudio'],['maquina','Máquina / puesto'],['producto','Producto / PN'],['operario','Operario'],['observador','Observador'],['turno','Turno'],['fecha','Fecha']];
+
+function nuevaToma(){return{id:Date.now(),
+  cab:{estudio:'',maquina:'',producto:'',operario:'',observador:'',turno:'',fecha:hoy()},
+  elementos:['Elemento 1'],cortes:[],pausas:[],notas:{},prec:5,
+  rt:{estado:'idle',ciclo:1,el:0,elIni:0,pausaAcc:0,pausaIni:0,encadenar:true,tomaIni:0,excl:0,finTs:0}}}
+
+let T=lsGet(LS_CUR,null)||nuevaToma();
+function migrar(t){const r=t.rt;if(r.tomaIni==null)r.tomaIni=t.cortes.length?t.cortes[0].ini:0;
+  if(r.excl==null)r.excl=0;if(r.finTs==null)r.finTs=0;if(t.prec==null)t.prec=5;return t}
+migrar(T);
+function guardar(){lsSet(LS_CUR,T)}
+
+/* ---------- Pantalla siempre encendida ---------- */
+let wl=null;
+function soltarWL(){if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
+async function pedirWL(){if(AND){try{AND.pantalla(true)}catch(e){}return}
+  try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&T.rt.estado!=='idle')pedirWL()});
+
+/* ---------- Cronómetro ---------- */
+function tiempoActual(){const r=T.rt,now=Date.now();
+  if(r.estado==='running')return now-r.elIni-r.pausaAcc;
+  if(r.estado==='paused')return r.pausaIni-r.elIni-r.pausaAcc;
+  return 0}
+/* Lectura continua dentro del ciclo (tomaIni = inicio del ciclo actual, excl = pausas del ciclo); vuelve a cero al empezar cada ciclo */
+function lectura(){const r=T.rt;if(!r.tomaIni)return 0;
+  if(r.estado==='paused')return r.pausaIni-r.tomaIni-r.excl;
+  if(r.estado==='idle'||r.estado==='between')return r.finTs?r.finTs-r.tomaIni-r.excl:0;
+  return Date.now()-r.tomaIni-r.excl}
+
+function iniciar(){const r=T.rt;if(!T.elementos.length){toast('Cargá el desglose en Datos');return}
+  if(r.estado!=='idle'&&r.estado!=='between')return;const now=Date.now();
+  r.tomaIni=now;r.excl=0;r.finTs=0;
+  r.estado='running';r.elIni=now;r.pausaAcc=0;pedirWL();guardar();render()}
+
+function corte(){const r=T.rt;if(r.estado!=='running')return;const now=Date.now();
+  T.cortes.push({ciclo:r.ciclo,el:r.el,ini:r.elIni,fin:now,ms:now-r.elIni-r.pausaAcc,pausaMs:r.pausaAcc,lect:now-r.tomaIni-r.excl,cIni:r.tomaIni,cExcl:r.excl,val:''});
+  r.el++;r.pausaAcc=0;r.elIni=now;
+  if(r.el>=T.elementos.length){r.el=0;r.ciclo++;
+    if(r.encadenar){r.tomaIni=now;r.excl=0;r.finTs=0}else{r.estado='between';r.finTs=now}
+    toast('Ciclo '+(r.ciclo-1)+' completo')}
+  try{if(AND)AND.vibrar(35);else if(navigator.vibrate)navigator.vibrate(35)}catch(e){}
+  guardar();render()}
+
+function pausa(){const r=T.rt,now=Date.now();
+  if(r.estado==='running'){r.estado='paused';r.pausaIni=now;$('#pMotivo').value=''}
+  else if(r.estado==='paused'){r.pausaAcc+=now-r.pausaIni;r.excl+=now-r.pausaIni;
+    T.pausas.push({ciclo:r.ciclo,el:r.el,ini:r.pausaIni,fin:now,motivo:$('#pMotivo').value.trim()});
+    r.estado='running'}
+  guardar();render()}
+
+function deshacer(){const r=T.rt;if(!T.cortes.length||!(r.estado==='running'||r.estado==='between'))return;
+  const c=T.cortes.pop(),extra=r.estado==='running'?r.pausaAcc:0;
+  T.pausas.forEach(p=>{if(p.ini>=c.fin){p.ciclo=c.ciclo;p.el=c.el}});
+  r.ciclo=c.ciclo;r.el=c.el;r.elIni=c.ini;r.pausaAcc=c.pausaMs+extra;r.estado='running';
+  if(c.cIni!=null){r.tomaIni=c.cIni;r.excl=c.cExcl+extra;r.finTs=0}
+  toast('Corte deshecho: '+T.elementos[c.el]);guardar();render()}
+
+function finalizar(){const r=T.rt;if(r.estado==='idle')return;
+  if((r.estado==='running'||r.estado==='paused')&&!confirm('Se descarta el elemento en curso ('+T.elementos[r.el]+'). ¿Finalizar?'))return;
+  const now=Date.now();
+  if(r.estado==='paused'){T.pausas.push({ciclo:r.ciclo,el:r.el,ini:r.pausaIni,fin:now,motivo:$('#pMotivo').value.trim()+' (al finalizar)'});r.excl+=now-r.pausaIni}
+  if(r.el>0){r.ciclo++;r.el=0}
+  r.estado='idle';r.pausaAcc=0;r.finTs=now;
+  soltarWL();
+  guardar();render();toast('Toma detenida. Guardala en Archivo.')}
+
+$('#bBig').onclick=()=>{const e=T.rt.estado;if(e==='running')corte();else if(e==='paused')pausa();else iniciar()};
+$('#bPausa').onclick=pausa;$('#bUndo').onclick=deshacer;$('#bFin').onclick=finalizar;
+$('#cEnc').onchange=e=>{T.rt.encadenar=e.target.checked;guardar()};
+document.addEventListener('keydown',e=>{if(tab!=='toma'||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+  if(e.code==='Space'||e.code==='Enter'){e.preventDefault();$('#bBig').click()}
+  else if(e.key==='p'||e.key==='P')pausa();
+  else if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();deshacer()}});
+
+function tick(){if(tab!=='toma')return;const r=T.rt,cur=tiempoActual();
+  $('#tCrono').textContent=fmtE(lectura());
+  const pz=T.pausas.reduce((a,p)=>a+(p.fin-p.ini),0)+(r.estado==='paused'?Date.now()-r.pausaIni:0);
+  $('#tTot').textContent='Elemento en curso: '+fmtE(cur)+'   ·   Pausas: '+fmtE(pz)}
+setInterval(tick,100);
+
+function renderToma(){const r=T.rt,N=T.elementos.length;
+  const nombres={idle:'Detenido',running:'Midiendo',paused:'EN PAUSA',between:'Entre ciclos'};
+  $('#tEstado').textContent=nombres[r.estado]+' · Ciclo '+r.ciclo+(N?' · Elemento '+(r.el+1)+'/'+N:'');
+  $('#tElem').textContent=(r.estado==='running'||r.estado==='paused')?T.elementos[r.el]:(N?'Listo para ciclo '+r.ciclo:'Sin elementos');
+  $('#tSig').textContent=N?('Sigue: '+(r.el+1<N?T.elementos[r.el+1]:(r.encadenar?'ciclo '+(r.ciclo+1)+' → '+T.elementos[0]:'fin de ciclo'))):'';
+  const b=$('#bBig');
+  b.textContent=r.estado==='running'?'CORTE':r.estado==='paused'?'REANUDAR':'INICIAR CICLO '+r.ciclo;
+  $('#bPausa').textContent=r.estado==='paused'?'Reanudar':'Pausa';
+  $('#bPausa').disabled=!(r.estado==='running'||r.estado==='paused');
+  $('#bUndo').disabled=!(T.cortes.length&&(r.estado==='running'||r.estado==='between'));
+  $('#bFin').disabled=r.estado==='idle';
+  $('#pausaBox').hidden=r.estado!=='paused';
+  $('#cEnc').checked=r.encadenar;
+  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'C'+c.ciclo+' · '+esc(T.elementos[c.el])+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')).join('<br>');
+  const ev=evalObs();
+  $('#tNec').textContent=ev?('Observaciones: '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 ciclos';
+  tick()}
+
+/* ---------- Datos ---------- */
+function renderDatos(){
+  $('#cab').innerHTML=CAB.map(([k,l])=>'<div><label>'+l+'</label><input data-k="'+k+'" value="'+esc(T.cab[k])+'"'+(k==='fecha'?' type="date"':'')+'></div>').join('');
+  $('#cab').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.cab[i.dataset.k]=i.value;guardar()});
+  const lock=T.cortes.length>0;
+  $('#els').innerHTML=T.elementos.map((n,i)=>'<div class="el"><span>'+(i+1)+'</span><input data-i="'+i+'" value="'+esc(n)+'">'+
+    (lock?'':'<button data-up="'+i+'">↑</button><button data-dn="'+i+'">↓</button><button data-rm="'+i+'">✕</button>')+'</div>').join('');
+  $('#els').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.elementos[+i.dataset.i]=i.value;guardar()});
+  $('#els').querySelectorAll('button').forEach(b=>b.onclick=()=>{const E=T.elementos;
+    if(b.dataset.up!=null){const i=+b.dataset.up;if(i>0)[E[i-1],E[i]]=[E[i],E[i-1]]}
+    else if(b.dataset.dn!=null){const i=+b.dataset.dn;if(i<E.length-1)[E[i+1],E[i]]=[E[i],E[i+1]]}
+    else if(b.dataset.rm!=null){E.splice(+b.dataset.rm,1)}
+    guardar();renderDatos()});
+  $('#bAddEl').disabled=lock;$('#bLoadTpl').disabled=lock;
+  $('#lockMsg').textContent=lock?'Ya hay cortes registrados: el orden y la cantidad de elementos quedan fijos (los nombres se pueden corregir).':'';
+  const tpl=lsGet(LS_TPL,{});
+  $('#selTpl').innerHTML='<option value="">— plantillas —</option>'+Object.keys(tpl).map(k=>'<option>'+esc(k)+'</option>').join('')}
+$('#bAddEl').onclick=()=>{T.elementos.push('Elemento '+(T.elementos.length+1));guardar();renderDatos()};
+$('#bSaveTpl').onclick=()=>{const n=prompt('Nombre de la plantilla:',T.cab.maquina||'');if(!n)return;const t=lsGet(LS_TPL,{});t[n]=T.elementos.slice();lsSet(LS_TPL,t);renderDatos();toast('Plantilla guardada')};
+$('#bLoadTpl').onclick=()=>{const n=$('#selTpl').value;if(!n)return;T.elementos=lsGet(LS_TPL,{})[n].slice();guardar();renderDatos()};
+$('#bDelTpl').onclick=()=>{const n=$('#selTpl').value;if(!n||!confirm('¿Borrar plantilla "'+n+'"?'))return;const t=lsGet(LS_TPL,{});delete t[n];lsSet(LS_TPL,t);renderDatos()};
+
+/* ---------- Resultados ---------- */
+function ciclos(){return [...new Set(T.cortes.map(c=>c.ciclo))].sort((a,b)=>a-b)}
+/* Método estadístico: N' = [ (z/k)·√(N·Σx² − (Σx)²) / Σx ]², z = 2 (≈95 %), k = precisión */
+function nNec(v){const N=v.length;if(N<2)return null;
+  const S=v.reduce((a,b)=>a+b,0),S2=v.reduce((a,b)=>a+b*b,0);if(S<=0)return null;
+  const K=2/(T.prec/100);return Math.max(1,Math.ceil(Math.pow(K*Math.sqrt(Math.max(0,N*S2-S*S))/S,2)))}
+function valsEl(e){return T.cortes.filter(c=>c.el===e).map(c=>c.ms/1000)}
+function evalObs(){let max=0,crit='',n=Infinity;
+  T.elementos.forEach((nm,e)=>{const v=valsEl(e),r=nNec(v);if(r==null)return;n=Math.min(n,v.length);if(r>max){max=r;crit=nm}});
+  return max?{max,crit,n}:null}
+function celdasN(v,th){const r=nNec(v),tg=th?'th':'td';
+  if(r==null)return '<'+tg+' class="mut">—</'+tg+'><'+tg+'></'+tg+'>';
+  return '<'+tg+'>'+r+'</'+tg+'><'+tg+'>'+(v.length>=r?'OK':'<span style="color:var(--warn)">faltan '+(r-v.length)+'</span>')+'</'+tg+'>'}
+function renderRes(){const C=ciclos();
+  $('#selPrec').value=String(T.prec);
+  if(!C.length){$('#tabla').innerHTML='<p class="mut" style="padding:10px">Todavía no hay cortes.</p>';$('#notas').innerHTML='';return}
+  let h='<table><tr><th>Elemento</th>'+C.map(c=>'<th>C'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>Mín</th><th>Máx</th><th>N\'</th><th>Estado</th></tr>';
+  T.elementos.forEach((nm,e)=>{const v=[];
+    h+='<tr><td>'+esc(nm)+'</td>';
+    C.forEach(c=>{const k=T.cortes.findIndex(x=>x.ciclo===c&&x.el===e);
+      if(k<0){h+='<td class="mut">—</td>';return}
+      const x=T.cortes[k];v.push(x.ms/1000);
+      h+='<td>'+(x.ms/1000).toFixed(2)+(x.pausaMs?'<span class="p">p</span>':'')+'<br><select data-k="'+k+'">'+
+        Object.keys(VAL).map(o=>'<option value="'+o+'"'+(x.val===o?' selected':'')+'>'+(o||'·')+'</option>').join('')+'</select></td>'});
+    const m=v.length?v.reduce((a,b)=>a+b,0)/v.length:0;
+    h+='<td>'+v.length+'</td><td>'+(v.length?m.toFixed(2):'—')+'</td><td>'+(v.length?Math.min(...v).toFixed(2):'—')+'</td><td>'+(v.length?Math.max(...v).toFixed(2):'—')+'</td>'+celdasN(v)+'</tr>'});
+  const tc=[];
+  h+='<tr><th>Total ciclo</th>'+C.map(c=>{const cs=T.cortes.filter(x=>x.ciclo===c),t=cs.reduce((a,x)=>a+x.ms,0)/1000,comp=cs.length===T.elementos.length;
+    if(comp)tc.push(t);return '<th>'+t.toFixed(2)+(comp?'':'*')+'</th>'}).join('')+
+    '<th>'+tc.length+'</th><th>'+(tc.length?(tc.reduce((a,b)=>a+b,0)/tc.length).toFixed(2):'—')+'</th><th></th><th></th>'+celdasN(tc,true)+'</tr></table>';
+  $('#tabla').innerHTML=h+'<p class="mut" style="font-size:12px;padding:0 8px">* ciclo incompleto (no entra en n, media ni N\' del total)</p>';
+  $('#tabla').querySelectorAll('select').forEach(s=>s.onchange=()=>{T.cortes[+s.dataset.k].val=s.value;guardar()});
+  $('#notas').innerHTML=C.map(c=>'<div class="el"><span>C'+c+'</span><input data-c="'+c+'" value="'+esc(T.notas[c]||'')+'" placeholder="Observación del ciclo"></div>').join('');
+  $('#notas').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.notas[i.dataset.c]=i.value;guardar()})}
+
+$('#selPrec').onchange=e=>{T.prec=+e.target.value;guardar();renderRes()};
+
+/* ---------- Archivo / CSV ---------- */
+function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const n=x=>x.toFixed(2).replace('.',',');
+  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Ciclo','N_elem','Elemento','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Motivo_pausa','Nota_ciclo'];
+  const rows=t.cortes.slice().sort((a,b)=>a.ciclo-b.ciclo||a.el-b.el).map(c=>[
+    t.cab.estudio,t.cab.maquina,t.cab.producto,t.cab.operario,t.cab.observador,t.cab.turno,t.cab.fecha,
+    c.ciclo,c.el+1,t.elementos[c.el],fmtH(c.ini),fmtH(c.fin),c.lect!=null?n(c.lect/1000):'',n(c.ms/1000),n(c.pausaMs/1000),VAL[c.val]||'',
+    t.pausas.filter(p=>p.ciclo===c.ciclo&&p.el===c.el).map(p=>p.motivo||'s/motivo').join(' | '),t.notas[c.ciclo]||''].map(q).join(';'));
+  return [head.join(';'),...rows].join('\r\n')}
+function nombreArch(t){const s=x=>String(x||'').trim().replace(/[^\w\-]+/g,'_');
+  const d=new Date(t.id);return 'toma_'+(s(t.cab.maquina)||'sin_maquina')+'_'+(t.cab.fecha||hoy())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.csv'}
+function descargar(nombre,txt){
+  if(AND){try{const r=AND.guardarCSV(nombre,'﻿'+txt);toast(r?'Guardado en '+r:'No se pudo guardar')}catch(e){toast('Error al guardar')}return}
+  const b=new Blob(['\ufeff'+txt],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nombre;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+function guardarHist(){const h=lsGet(LS_HIST,[]),i=h.findIndex(x=>x.id===T.id),c=JSON.parse(JSON.stringify(T));
+  if(i>=0)h[i]=c;else h.unshift(c);return lsSet(LS_HIST,h)}
+$('#bGuardar').onclick=()=>{toast(guardarHist()?'Toma guardada':'No se pudo guardar (almacenamiento lleno)');renderArch()};
+$('#bCSV').onclick=()=>{if(!T.cortes.length){toast('No hay cortes');return}guardarHist();descargar(nombreArch(T),aCSV(T));renderArch()};
+$('#bShare').onclick=()=>{if(!AND||!T.cortes.length){toast('No hay cortes');return}guardarHist();
+  try{AND.compartirCSV(nombreArch(T),'﻿'+aCSV(T))}catch(e){toast('Error al compartir')}};
+$('#filaShare').hidden=!AND;
+$('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador');
+$('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
+  if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar una nueva?'))return;
+  if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab);
+  T=nuevaToma();T.elementos=el;['estudio','maquina','producto','observador','turno'].forEach(k=>T.cab[k]=cab[k]);
+  guardar();go('datos');toast('Nueva toma (se copió el encabezado y el desglose)')};
+function renderArch(){const h=lsGet(LS_HIST,[]);
+  $('#hist').innerHTML=h.length?h.map((t,i)=>{const nc=new Set(t.cortes.map(c=>c.ciclo)).size;
+    return '<div class="it"><div><b>'+esc(t.cab.maquina||'(sin máquina)')+'</b> · '+esc(t.cab.fecha)+'<br><span class="mut">'+esc(t.cab.estudio)+' · '+nc+' ciclos · '+t.cortes.length+' cortes'+(t.id===T.id?' · <b>abierta</b>':'')+'</span></div>'+
+    '<button data-ab="'+i+'">Abrir</button><button data-csv="'+i+'">CSV</button><button data-del="'+i+'">✕</button></div>'}).join(''):'<p class="mut">Sin tomas guardadas.</p>';
+  $('#hist').querySelectorAll('button').forEach(b=>b.onclick=()=>{const h=lsGet(LS_HIST,[]);
+    if(b.dataset.ab!=null){if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
+      if(T.cortes.length)guardarHist();T=migrar(JSON.parse(JSON.stringify(lsGet(LS_HIST,[])[+b.dataset.ab])));guardar();go('res')}
+    else if(b.dataset.csv!=null){const t=h[+b.dataset.csv];descargar(nombreArch(t),aCSV(t))}
+    else if(b.dataset.del!=null){const t=h[+b.dataset.del];if(!confirm('¿Borrar la toma de '+(t.cab.maquina||'')+' '+t.cab.fecha+'? No se puede recuperar.'))return;
+      h.splice(+b.dataset.del,1);lsSet(LS_HIST,h);renderArch()}})}
+
+/* ---------- Navegación ---------- */
+let tab='toma';
+function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['toma','datos','res','arch'].forEach(k=>$('#v-'+k).hidden=k!==t);render()}
+function render(){({toma:renderToma,datos:renderDatos,res:renderRes,arch:renderArch})[tab]()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+go(T.cortes.length||T.rt.estado!=='idle'?'toma':'datos');
+</script>
+</body>
+</html>
