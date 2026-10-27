@@ -15,6 +15,7 @@ import android.os.Vibrator;
 import android.provider.MediaStore;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -42,7 +43,10 @@ public class MainActivity extends Activity {
     private static final String URL_APP = "https://appassets.androidplatform.net/assets/toma_tiempos.html";
     private static final String SUBCARPETA = "TomaTiempos";
 
+    private static final int REQ_ARCHIVO = 1001;
+
     private WebView web;
+    private ValueCallback<Uri[]> callbackArchivo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +73,43 @@ public class MainActivity extends Activity {
             }
         });
         // Con un WebChromeClient asignado, alert/confirm/prompt del HTML se muestran como diálogos nativos.
-        web.setWebChromeClient(new WebChromeClient());
+        // onShowFileChooser hace funcionar <input type="file"> (Restaurar respaldo).
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
+                if (callbackArchivo != null) callbackArchivo.onReceiveValue(null);
+                callbackArchivo = cb;
+                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("*/*");
+                try {
+                    startActivityForResult(Intent.createChooser(i, "Elegir respaldo"), REQ_ARCHIVO);
+                } catch (Exception e) {
+                    callbackArchivo = null;
+                    return false;
+                }
+                return true;
+            }
+        });
         web.addJavascriptInterface(new Puente(), "Android");
 
         web.loadUrl(URL_APP);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_ARCHIVO) {
+            if (callbackArchivo != null) {
+                Uri[] res = null;
+                if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                    res = new Uri[]{data.getData()};
+                }
+                callbackArchivo.onReceiveValue(res);
+                callbackArchivo = null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
@@ -93,16 +130,21 @@ public class MainActivity extends Activity {
     /** Métodos accesibles desde el HTML como window.Android.xxx() */
     private class Puente {
 
-        /** Guarda el CSV en Descargas/TomaTiempos. Devuelve la ubicación o "" si falla. */
         @JavascriptInterface
         public String guardarCSV(String nombre, String contenido) {
+            return guardarArchivo(nombre, contenido, "text/csv");
+        }
+
+        /** Guarda un archivo (CSV, respaldo .json) en Descargas/TomaTiempos. Devuelve la ubicación o "" si falla. */
+        @JavascriptInterface
+        public String guardarArchivo(String nombre, String contenido, String mime) {
             byte[] datos = contenido.getBytes(StandardCharsets.UTF_8);
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     ContentResolver cr = getContentResolver();
                     ContentValues v = new ContentValues();
                     v.put(MediaStore.MediaColumns.DISPLAY_NAME, nombre);
-                    v.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");
+                    v.put(MediaStore.MediaColumns.MIME_TYPE, (mime == null || mime.isEmpty()) ? "text/plain" : mime);
                     v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + SUBCARPETA);
                     Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                     if (uri == null) return "";

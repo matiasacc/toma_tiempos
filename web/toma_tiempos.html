@@ -78,7 +78,7 @@ td select{width:auto;padding:2px;font-size:12px}
     <button id="bUndo">Deshacer corte</button>
     <button id="bFin">Finalizar</button>
   </div>
-  <label class="chk"><input type="checkbox" id="cEnc"> Encadenar ciclos (al cortar el último elemento arranca el ciclo siguiente)</label>
+  <label class="chk"><input type="checkbox" id="cEnc"> Encadenar observaciones (al cortar el último elemento arranca la observación siguiente)</label>
   <div id="tUlt" class="ult"></div>
 </section>
 
@@ -103,7 +103,7 @@ td select{width:auto;padding:2px;font-size:12px}
     <select id="selPrec" style="flex:0 0 90px"><option value="5">5 %</option><option value="10">10 %</option></select>
     <span class="mut" style="flex:1">nivel de confianza 95 %</span></div>
   <p class="mut" style="font-size:12px;margin:4px 0">Método estadístico: N' = [ (z/k)·√(N·Σx² − (Σx)²) / Σx ]², con z = 2 (≈95 %) y k = precisión (z/k = 40 para ±5 %). N = observaciones tomadas, x = tiempo de cada observación.</p>
-  <h2>Notas por ciclo</h2>
+  <h2>Notas por observación</h2>
   <div id="notas"></div>
 </section>
 
@@ -114,6 +114,10 @@ td select{width:auto;padding:2px;font-size:12px}
   <div class="fila"><button id="bNueva">Nueva toma</button></div>
   <h2>Tomas guardadas</h2>
   <div class="lista" id="hist"></div>
+  <h2>Respaldo</h2>
+  <p class="mut" style="font-size:12px;margin:0 0 6px">Un archivo .json con todas las tomas guardadas, la toma abierta y las plantillas. Restaurar agrega lo que falta; no borra nada de este dispositivo.</p>
+  <div class="fila"><button id="bResp">Respaldo completo</button><button id="bRest">Restaurar respaldo</button></div>
+  <input type="file" id="fRest" accept=".json,application/json" hidden>
   <p class="mut" style="font-size:12px;margin-top:20px" id="verTxt"></p>
 </section>
 
@@ -121,7 +125,7 @@ td select{width:auto;padding:2px;font-size:12px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 const LS_CUR='tt_actual',LS_HIST='tt_historial',LS_TPL='tt_plantillas';
@@ -160,7 +164,7 @@ function tiempoActual(){const r=T.rt,now=Date.now();
   if(r.estado==='running')return now-r.elIni-r.pausaAcc;
   if(r.estado==='paused')return r.pausaIni-r.elIni-r.pausaAcc;
   return 0}
-/* Lectura continua dentro del ciclo (tomaIni = inicio del ciclo actual, excl = pausas del ciclo); vuelve a cero al empezar cada ciclo */
+/* Lectura continua dentro de la observación (tomaIni = inicio de la observación actual, excl = sus pausas); vuelve a cero al empezar cada observación. Internamente el campo se llama 'ciclo' por compatibilidad con tomas guardadas */
 function lectura(){const r=T.rt;if(!r.tomaIni)return 0;
   if(r.estado==='paused')return r.pausaIni-r.tomaIni-r.excl;
   if(r.estado==='idle'||r.estado==='between')return r.finTs?r.finTs-r.tomaIni-r.excl:0;
@@ -176,7 +180,7 @@ function corte(){const r=T.rt;if(r.estado!=='running')return;const now=Date.now(
   r.el++;r.pausaAcc=0;r.elIni=now;
   if(r.el>=T.elementos.length){r.el=0;r.ciclo++;
     if(r.encadenar){r.tomaIni=now;r.excl=0;r.finTs=0}else{r.estado='between';r.finTs=now}
-    toast('Ciclo '+(r.ciclo-1)+' completo')}
+    toast('Observación '+(r.ciclo-1)+' completa')}
   try{if(AND)AND.vibrar(35);else if(navigator.vibrate)navigator.vibrate(35)}catch(e){}
   guardar();render()}
 
@@ -218,21 +222,21 @@ function tick(){if(tab!=='toma')return;const r=T.rt,cur=tiempoActual();
 setInterval(tick,100);
 
 function renderToma(){const r=T.rt,N=T.elementos.length;
-  const nombres={idle:'Detenido',running:'Midiendo',paused:'EN PAUSA',between:'Entre ciclos'};
-  $('#tEstado').textContent=nombres[r.estado]+' · Ciclo '+r.ciclo+(N?' · Elemento '+(r.el+1)+'/'+N:'');
-  $('#tElem').textContent=(r.estado==='running'||r.estado==='paused')?T.elementos[r.el]:(N?'Listo para ciclo '+r.ciclo:'Sin elementos');
-  $('#tSig').textContent=N?('Sigue: '+(r.el+1<N?T.elementos[r.el+1]:(r.encadenar?'ciclo '+(r.ciclo+1)+' → '+T.elementos[0]:'fin de ciclo'))):'';
+  const nombres={idle:'Detenido',running:'Midiendo',paused:'EN PAUSA',between:'Entre observaciones'};
+  $('#tEstado').textContent=nombres[r.estado]+' · Obs '+r.ciclo+(N?' · Elemento '+(r.el+1)+'/'+N:'');
+  $('#tElem').textContent=(r.estado==='running'||r.estado==='paused')?T.elementos[r.el]:(N?'Listo para observación '+r.ciclo:'Sin elementos');
+  $('#tSig').textContent=N?('Sigue: '+(r.el+1<N?T.elementos[r.el+1]:(r.encadenar?'obs '+(r.ciclo+1)+' → '+T.elementos[0]:'fin de observación'))):'';
   const b=$('#bBig');
-  b.textContent=r.estado==='running'?'CORTE':r.estado==='paused'?'REANUDAR':'INICIAR CICLO '+r.ciclo;
+  b.textContent=r.estado==='running'?'CORTE':r.estado==='paused'?'REANUDAR':'INICIAR OBS '+r.ciclo;
   $('#bPausa').textContent=r.estado==='paused'?'Reanudar':'Pausa';
   $('#bPausa').disabled=!(r.estado==='running'||r.estado==='paused');
   $('#bUndo').disabled=!(T.cortes.length&&(r.estado==='running'||r.estado==='between'));
   $('#bFin').disabled=r.estado==='idle';
   $('#pausaBox').hidden=r.estado!=='paused';
   $('#cEnc').checked=r.encadenar;
-  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'C'+c.ciclo+' · '+esc(T.elementos[c.el])+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')).join('<br>');
+  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'O'+c.ciclo+' · '+esc(T.elementos[c.el])+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')).join('<br>');
   const ev=evalObs();
-  $('#tNec').textContent=ev?('Observaciones: '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 ciclos';
+  $('#tNec').textContent=ev?('Observaciones: '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 observaciones';
   tick()}
 
 /* ---------- Datos ---------- */
@@ -273,7 +277,7 @@ function celdasN(v,th){const r=nNec(v),tg=th?'th':'td';
 function renderRes(){const C=ciclos();
   $('#selPrec').value=String(T.prec);
   if(!C.length){$('#tabla').innerHTML='<p class="mut" style="padding:10px">Todavía no hay cortes.</p>';$('#notas').innerHTML='';return}
-  let h='<table><tr><th>Elemento</th>'+C.map(c=>'<th>C'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>Mín</th><th>Máx</th><th>N\'</th><th>Estado</th></tr>';
+  let h='<table><tr><th>Elemento</th>'+C.map(c=>'<th>O'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>Mín</th><th>Máx</th><th>N\'</th><th>Estado</th></tr>';
   T.elementos.forEach((nm,e)=>{const v=[];
     h+='<tr><td>'+esc(nm)+'</td>';
     C.forEach(c=>{const k=T.cortes.findIndex(x=>x.ciclo===c&&x.el===e);
@@ -284,12 +288,12 @@ function renderRes(){const C=ciclos();
     const m=v.length?v.reduce((a,b)=>a+b,0)/v.length:0;
     h+='<td>'+v.length+'</td><td>'+(v.length?m.toFixed(2):'—')+'</td><td>'+(v.length?Math.min(...v).toFixed(2):'—')+'</td><td>'+(v.length?Math.max(...v).toFixed(2):'—')+'</td>'+celdasN(v)+'</tr>'});
   const tc=[];
-  h+='<tr><th>Total ciclo</th>'+C.map(c=>{const cs=T.cortes.filter(x=>x.ciclo===c),t=cs.reduce((a,x)=>a+x.ms,0)/1000,comp=cs.length===T.elementos.length;
+  h+='<tr><th>Total observación</th>'+C.map(c=>{const cs=T.cortes.filter(x=>x.ciclo===c),t=cs.reduce((a,x)=>a+x.ms,0)/1000,comp=cs.length===T.elementos.length;
     if(comp)tc.push(t);return '<th>'+t.toFixed(2)+(comp?'':'*')+'</th>'}).join('')+
     '<th>'+tc.length+'</th><th>'+(tc.length?(tc.reduce((a,b)=>a+b,0)/tc.length).toFixed(2):'—')+'</th><th></th><th></th>'+celdasN(tc,true)+'</tr></table>';
-  $('#tabla').innerHTML=h+'<p class="mut" style="font-size:12px;padding:0 8px">* ciclo incompleto (no entra en n, media ni N\' del total)</p>';
+  $('#tabla').innerHTML=h+'<p class="mut" style="font-size:12px;padding:0 8px">* observación incompleta (no entra en n, media ni N\' del total)</p>';
   $('#tabla').querySelectorAll('select').forEach(s=>s.onchange=()=>{T.cortes[+s.dataset.k].val=s.value;guardar()});
-  $('#notas').innerHTML=C.map(c=>'<div class="el"><span>C'+c+'</span><input data-c="'+c+'" value="'+esc(T.notas[c]||'')+'" placeholder="Observación del ciclo"></div>').join('');
+  $('#notas').innerHTML=C.map(c=>'<div class="el"><span>O'+c+'</span><input data-c="'+c+'" value="'+esc(T.notas[c]||'')+'" placeholder="Nota"></div>').join('');
   $('#notas').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.notas[i.dataset.c]=i.value;guardar()})}
 
 $('#selPrec').onchange=e=>{T.prec=+e.target.value;guardar();renderRes()};
@@ -297,7 +301,7 @@ $('#selPrec').onchange=e=>{T.prec=+e.target.value;guardar();renderRes()};
 /* ---------- Archivo / CSV ---------- */
 function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   const n=x=>x.toFixed(2).replace('.',',');
-  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Ciclo','N_elem','Elemento','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Motivo_pausa','Nota_ciclo'];
+  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Observacion','N_elem','Elemento','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Motivo_pausa','Nota'];
   const rows=t.cortes.slice().sort((a,b)=>a.ciclo-b.ciclo||a.el-b.el).map(c=>[
     t.cab.estudio,t.cab.maquina,t.cab.producto,t.cab.operario,t.cab.observador,t.cab.turno,t.cab.fecha,
     c.ciclo,c.el+1,t.elementos[c.el],fmtH(c.ini),fmtH(c.fin),c.lect!=null?n(c.lect/1000):'',n(c.ms/1000),n(c.pausaMs/1000),VAL[c.val]||'',
@@ -305,9 +309,10 @@ function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n]/.test(s)?'"'+s.repla
   return [head.join(';'),...rows].join('\r\n')}
 function nombreArch(t){const s=x=>String(x||'').trim().replace(/[^\w\-]+/g,'_');
   const d=new Date(t.id);return 'toma_'+(s(t.cab.maquina)||'sin_maquina')+'_'+(t.cab.fecha||hoy())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.csv'}
-function descargar(nombre,txt){
-  if(AND){try{const r=AND.guardarCSV(nombre,'﻿'+txt);toast(r?'Guardado en '+r:'No se pudo guardar')}catch(e){toast('Error al guardar')}return}
-  const b=new Blob(['\ufeff'+txt],{type:'text/csv;charset=utf-8'});
+function descargar(nombre,txt,mime){mime=mime||'text/csv';
+  const cont=mime==='text/csv'?'\ufeff'+txt:txt;   // BOM solo en CSV (para que Excel lea los acentos)
+  if(AND){try{const r=AND.guardarArchivo(nombre,cont,mime);toast(r?'Guardado en '+r:'No se pudo guardar')}catch(e){toast('Error al guardar')}return}
+  const b=new Blob([cont],{type:mime+';charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nombre;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 function guardarHist(){const h=lsGet(LS_HIST,[]),i=h.findIndex(x=>x.id===T.id),c=JSON.parse(JSON.stringify(T));
@@ -315,8 +320,34 @@ function guardarHist(){const h=lsGet(LS_HIST,[]),i=h.findIndex(x=>x.id===T.id),c
 $('#bGuardar').onclick=()=>{toast(guardarHist()?'Toma guardada':'No se pudo guardar (almacenamiento lleno)');renderArch()};
 $('#bCSV').onclick=()=>{if(!T.cortes.length){toast('No hay cortes');return}guardarHist();descargar(nombreArch(T),aCSV(T));renderArch()};
 $('#bShare').onclick=()=>{if(!AND||!T.cortes.length){toast('No hay cortes');return}guardarHist();
-  try{AND.compartirCSV(nombreArch(T),'﻿'+aCSV(T))}catch(e){toast('Error al compartir')}};
+  try{AND.compartirCSV(nombreArch(T),'\ufeff'+aCSV(T))}catch(e){toast('Error al compartir')}};
 $('#filaShare').hidden=!AND;
+
+/* ---------- Respaldo completo ---------- */
+$('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();
+  const r={app:'toma_tiempos',formato:1,version:VERSION,fecha:new Date().toISOString(),
+    actual:T,historial:lsGet(LS_HIST,[]),plantillas:lsGet(LS_TPL,{})};
+  const d=new Date();
+  descargar('respaldo_toma_tiempos_'+hoy()+'_'+pad(d.getHours())+pad(d.getMinutes())+'.json',JSON.stringify(r),'application/json');renderArch()};
+$('#bRest').onclick=()=>{$('#fRest').value='';$('#fRest').click()};
+$('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{let r;try{r=JSON.parse(rd.result)}catch(x){toast('El archivo no es un respaldo válido');return}
+    if(!r||r.app!=='toma_tiempos'||!Array.isArray(r.historial)){toast('El archivo no es un respaldo de Toma de Tiempos');return}
+    const h=lsGet(LS_HIST,[]),ids=new Set(h.map(t=>t.id)),tpl=lsGet(LS_TPL,{});
+    const nuevas=r.historial.slice();
+    if(r.actual&&r.actual.cortes&&r.actual.cortes.length&&!r.historial.some(t=>t.id===r.actual.id))nuevas.push(r.actual);
+    const agregar=nuevas.filter(t=>t&&t.id!=null&&Array.isArray(t.cortes)&&!ids.has(t.id));
+    const tplNuevas=Object.keys(r.plantillas||{}).filter(k=>!(k in tpl));
+    if(!agregar.length&&!tplNuevas.length){toast('No hay nada nuevo para restaurar');return}
+    if(!confirm('Se agregan '+agregar.length+' tomas y '+tplNuevas.length+' plantillas. Lo que ya está en este dispositivo no se modifica. ¿Continuar?'))return;
+    agregar.forEach(t=>{t=migrar(t);t.rt.estado='idle';h.push(t)});
+    h.sort((a,b)=>b.id-a.id);
+    tplNuevas.forEach(k=>tpl[k]=r.plantillas[k]);
+    const ok=lsSet(LS_HIST,h)&&lsSet(LS_TPL,tpl);
+    toast(ok?'Respaldo restaurado':'No se pudo restaurar (almacenamiento lleno)');renderArch()};
+  rd.onerror=()=>toast('No se pudo leer el archivo');
+  rd.readAsText(f,'utf-8')};
 $('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador');
 $('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
   if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar una nueva?'))return;
@@ -325,7 +356,7 @@ $('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actu
   guardar();go('datos');toast('Nueva toma (se copió el encabezado y el desglose)')};
 function renderArch(){const h=lsGet(LS_HIST,[]);
   $('#hist').innerHTML=h.length?h.map((t,i)=>{const nc=new Set(t.cortes.map(c=>c.ciclo)).size;
-    return '<div class="it"><div><b>'+esc(t.cab.maquina||'(sin máquina)')+'</b> · '+esc(t.cab.fecha)+'<br><span class="mut">'+esc(t.cab.estudio)+' · '+nc+' ciclos · '+t.cortes.length+' cortes'+(t.id===T.id?' · <b>abierta</b>':'')+'</span></div>'+
+    return '<div class="it"><div><b>'+esc(t.cab.maquina||'(sin máquina)')+'</b> · '+esc(t.cab.fecha)+'<br><span class="mut">'+esc(t.cab.estudio)+' · '+nc+' observaciones · '+t.cortes.length+' cortes'+(t.id===T.id?' · <b>abierta</b>':'')+'</span></div>'+
     '<button data-ab="'+i+'">Abrir</button><button data-csv="'+i+'">CSV</button><button data-del="'+i+'">✕</button></div>'}).join(''):'<p class="mut">Sin tomas guardadas.</p>';
   $('#hist').querySelectorAll('button').forEach(b=>b.onclick=()=>{const h=lsGet(LS_HIST,[]);
     if(b.dataset.ab!=null){if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
