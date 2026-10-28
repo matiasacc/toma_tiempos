@@ -8,6 +8,7 @@
 :root{--bg:#f3f3f1;--fg:#1c1c1c;--mut:#6a6a66;--line:#cbcbc6;--card:#fff;--acc:#1f4e79;--accfg:#fff;--warn:#8a5a00;--bad:#8b1e1e}
 @media (prefers-color-scheme:dark){:root{--bg:#151515;--fg:#e6e6e3;--mut:#9a9a95;--line:#3a3a37;--card:#1f1f1f;--acc:#3f73a3;--accfg:#fff;--warn:#d09a3a;--bad:#d06464}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
 nav{display:flex;gap:4px;padding:6px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 nav button{flex:1;padding:10px 4px}
@@ -48,6 +49,15 @@ td select{width:auto;padding:2px;font-size:12px}
 .p{color:var(--warn);font-size:11px}
 .lista .it{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
 .lista .it div{flex:1}
+.big.chico{height:auto;min-height:60px;font-size:19px;font-weight:600}
+.paleta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.paleta button{min-height:88px;font-size:17px;font-weight:600;white-space:normal;line-height:1.2}
+.paleta button .cnt{display:block;font-size:12px;font-weight:400;color:var(--mut)}
+.paleta button.nueva{border-style:dashed;color:var(--mut)}
+.ultbox{border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:10px;background:var(--card)}
+.ultbox span{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+.sel.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+td input.det{min-width:200px;padding:4px 6px;font-size:13px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:.92}
 </style>
@@ -69,6 +79,7 @@ td select{width:auto;padding:2px;font-size:12px}
   <div class="tot" id="tTot"></div>
   <div class="tot" id="tNec" style="font-size:13px;margin-top:4px"></div>
   <button id="bBig" class="big pri">INICIAR</button>
+  <div id="paleta" class="paleta" hidden></div>
   <div id="pausaBox" class="pausabox" hidden>
     En pausa — este tiempo no se suma al elemento.
     <input id="pMotivo" placeholder="Motivo (opcional)" style="margin-top:6px">
@@ -78,14 +89,20 @@ td select{width:auto;padding:2px;font-size:12px}
     <button id="bUndo">Deshacer corte</button>
     <button id="bFin">Finalizar</button>
   </div>
-  <label class="chk"><input type="checkbox" id="cEnc"> Encadenar observaciones (al cortar el último elemento arranca la observación siguiente)</label>
+  <div class="fila" id="filaFinObs" hidden><button id="bFinObs">Fin de observación</button></div>
+  <div id="ultBox" class="ultbox" hidden><span id="ultTxt"></span>
+    <input id="ultDet" placeholder="Detalle del último corte (se puede dictar con el micrófono del teclado)"></div>
+  <label class="chk"><input type="checkbox" id="cEnc"> <span id="encTxt"></span></label>
   <div id="tUlt" class="ult"></div>
 </section>
 
 <section id="v-datos" hidden>
   <h2>Encabezado</h2>
   <div class="grid" id="cab"></div>
-  <h2>Desglose de elementos</h2>
+  <h2>Modo</h2>
+  <div class="fila" id="modoSel"><button class="sel" data-m="sec">Secuencial</button><button class="sel" data-m="libre">Libre</button></div>
+  <p class="mut" id="modoTxt" style="font-size:12px;margin:0"></p>
+  <h2 id="elsTit">Desglose de elementos</h2>
   <div id="els"></div>
   <div class="fila"><button id="bAddEl">+ Agregar elemento</button></div>
   <div id="lockMsg" class="mut" style="font-size:13px"></div>
@@ -95,9 +112,9 @@ td select{width:auto;padding:2px;font-size:12px}
 </section>
 
 <section id="v-res" hidden>
-  <h2>Tiempos por elemento [s]</h2>
+  <h2 id="resTit">Tiempos por elemento [s]</h2>
   <div class="tw" id="tabla"></div>
-  <p class="mut" style="font-size:12px">Valoración: L = lento · N = normal · R = rápido. <span class="p">p</span> = elemento con pausa descontada.</p>
+  <p class="mut" style="font-size:12px" id="resNota"></p>
   <h2>Observaciones necesarias</h2>
   <div class="fila" style="align-items:center"><span class="mut" style="flex:0 0 auto">Precisión ±</span>
     <select id="selPrec" style="flex:0 0 90px"><option value="5">5 %</option><option value="10">10 %</option></select>
@@ -105,6 +122,9 @@ td select{width:auto;padding:2px;font-size:12px}
   <p class="mut" style="font-size:12px;margin:4px 0">Método estadístico: N' = [ (z/k)·√(N·Σx² − (Σx)²) / Σx ]², con z = 2 (≈95 %) y k = precisión (z/k = 40 para ±5 %). N = observaciones tomadas, x = tiempo de cada observación.</p>
   <h2>Notas por observación</h2>
   <div id="notas"></div>
+  <h2>Detalle de cortes</h2>
+  <div class="tw" id="detalle"></div>
+  <p class="mut" style="font-size:12px">Valoración: L = lento · N = normal · R = rápido. <span class="p">p</span> = tramo con pausa descontada.</p>
 </section>
 
 <section id="v-arch" hidden>
@@ -125,7 +145,7 @@ td select{width:auto;padding:2px;font-size:12px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.1.0';
+const VERSION='1.2.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 const LS_CUR='tt_actual',LS_HIST='tt_historial',LS_TPL='tt_plantillas';
@@ -141,17 +161,24 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 const VAL={'':'','L':'Lento','N':'Normal','R':'Rápido'};
 const CAB=[['estudio','Estudio'],['maquina','Máquina / puesto'],['producto','Producto / PN'],['operario','Operario'],['observador','Observador'],['turno','Turno'],['fecha','Fecha']];
 
-function nuevaToma(){return{id:Date.now(),
+function nuevaToma(){return{id:Date.now(),modo:'sec',
   cab:{estudio:'',maquina:'',producto:'',operario:'',observador:'',turno:'',fecha:hoy()},
   elementos:['Elemento 1'],cortes:[],pausas:[],notas:{},prec:5,
   rt:{estado:'idle',ciclo:1,el:0,elIni:0,pausaAcc:0,pausaIni:0,encadenar:true,tomaIni:0,excl:0,finTs:0}}}
 
 let T=lsGet(LS_CUR,null)||nuevaToma();
 function migrar(t){const r=t.rt;if(r.tomaIni==null)r.tomaIni=t.cortes.length?t.cortes[0].ini:0;
-  if(r.excl==null)r.excl=0;if(r.finTs==null)r.finTs=0;if(t.prec==null)t.prec=5;return t}
+  if(r.excl==null)r.excl=0;if(r.finTs==null)r.finTs=0;if(t.prec==null)t.prec=5;if(!t.modo)t.modo='sec';return t}
 migrar(T);
 function guardar(){lsSet(LS_CUR,T)}
-
+/* Modo secuencial: elementos fijos en orden. Modo libre: cada corte se asigna a una actividad de la botonera. */
+const LIBRE=()=>T.modo==='libre';
+/* Nombre del elemento/actividad de un corte (en modo libre puede quedar sin nombre: el = null) */
+function nomEl(t,c){return c.el==null?'(sin nombre)':(t.elementos[c.el]??'?')}
+/* N.º de repetición de esa actividad dentro de su observación (cada repetición se mide por separado) */
+function repDe(t,c){if(c.el==null)return '';return t.cortes.filter(x=>x.ciclo===c.ciclo&&x.el===c.el&&x.fin<=c.fin).length}
+/* Cortes en orden cronológico, con su índice original */
+function ordenados(t){return t.cortes.map((c,k)=>({c,k})).sort((a,b)=>a.c.ciclo-b.c.ciclo||a.c.fin-b.c.fin)}
 /* ---------- Pantalla siempre encendida ---------- */
 let wl=null;
 function soltarWL(){if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
@@ -170,18 +197,40 @@ function lectura(){const r=T.rt;if(!r.tomaIni)return 0;
   if(r.estado==='idle'||r.estado==='between')return r.finTs?r.finTs-r.tomaIni-r.excl:0;
   return Date.now()-r.tomaIni-r.excl}
 
-function iniciar(){const r=T.rt;if(!T.elementos.length){toast('Cargá el desglose en Datos');return}
+function iniciar(){const r=T.rt;if(!LIBRE()&&!T.elementos.length){toast('Cargá el desglose en Datos');return}
   if(r.estado!=='idle'&&r.estado!=='between')return;const now=Date.now();
-  r.tomaIni=now;r.excl=0;r.finTs=0;
+  r.tomaIni=now;r.excl=0;r.finTs=0;r.el=0;
   r.estado='running';r.elIni=now;r.pausaAcc=0;pedirWL();guardar();render()}
 
-function corte(){const r=T.rt;if(r.estado!=='running')return;const now=Date.now();
-  T.cortes.push({ciclo:r.ciclo,el:r.el,ini:r.elIni,fin:now,ms:now-r.elIni-r.pausaAcc,pausaMs:r.pausaAcc,lect:now-r.tomaIni-r.excl,cIni:r.tomaIni,cExcl:r.excl,val:''});
-  r.el++;r.pausaAcc=0;r.elIni=now;
-  if(r.el>=T.elementos.length){r.el=0;r.ciclo++;
-    if(r.encadenar){r.tomaIni=now;r.excl=0;r.finTs=0}else{r.estado='between';r.finTs=now}
-    toast('Observación '+(r.ciclo-1)+' completa')}
+function cerrarObs(now){const r=T.rt;r.el=0;r.ciclo++;r.elIni=now;r.pausaAcc=0;
+  if(r.encadenar){r.tomaIni=now;r.excl=0;r.finTs=0}else{r.estado='between';r.finTs=now}
+  toast('Observación '+(r.ciclo-1)+' completa')}
+
+/* elL: en modo libre, índice de la actividad que terminó (null = sin nombre). ts: instante del toque */
+function corte(elL,ts){const r=T.rt;if(r.estado!=='running')return;const now=ts||Date.now();
+  const el=LIBRE()?(elL==null?null:elL):r.el;
+  T.cortes.push({ciclo:r.ciclo,el,ini:r.elIni,fin:now,ms:now-r.elIni-r.pausaAcc,pausaMs:r.pausaAcc,lect:now-r.tomaIni-r.excl,cIni:r.tomaIni,cExcl:r.excl,val:'',det:''});
+  r.pausaAcc=0;r.elIni=now;
+  if(!LIBRE()){r.el++;if(r.el>=T.elementos.length)cerrarObs(now)}
   try{if(AND)AND.vibrar(35);else if(navigator.vibrate)navigator.vibrate(35)}catch(e){}
+  guardar();render()}
+
+/* Modo libre, "+ Nueva": el corte queda en el instante del toque; después se pide el nombre */
+function corteNueva(){const r=T.rt;if(r.estado!=='running')return;const ts=Date.now();
+  const n=prompt('Actividad que terminó (nueva):');if(n===null)return;const nm=n.trim();
+  if(!nm){corte(null,ts);return}
+  let i=T.elementos.findIndex(x=>x.trim().toLowerCase()===nm.toLowerCase());
+  if(i<0){T.elementos.push(nm);i=T.elementos.length-1}
+  corte(i,ts)}
+
+/* Modo libre: cierra la observación en el último corte (el tramo en curso se descarta) */
+function finObs(){const r=T.rt;if(!LIBRE()||r.estado!=='running')return;
+  const cs=T.cortes.filter(c=>c.ciclo===r.ciclo);if(!cs.length){toast('La observación no tiene cortes');return}
+  const cur=tiempoActual();
+  if(cur>3000&&!confirm('Se descarta el tramo en curso ('+(cur/1000).toFixed(1)+' s). ¿Cerrar la observación?'))return;
+  const last=cs[cs.length-1];
+  cerrarObs(Date.now());
+  if(r.estado==='between'){r.finTs=last.fin;r.excl=last.cExcl}
   guardar();render()}
 
 function pausa(){const r=T.rt,now=Date.now();
@@ -194,69 +243,105 @@ function pausa(){const r=T.rt,now=Date.now();
 function deshacer(){const r=T.rt;if(!T.cortes.length||!(r.estado==='running'||r.estado==='between'))return;
   const c=T.cortes.pop(),extra=r.estado==='running'?r.pausaAcc:0;
   T.pausas.forEach(p=>{if(p.ini>=c.fin){p.ciclo=c.ciclo;p.el=c.el}});
-  r.ciclo=c.ciclo;r.el=c.el;r.elIni=c.ini;r.pausaAcc=c.pausaMs+extra;r.estado='running';
+  r.ciclo=c.ciclo;r.el=LIBRE()?0:c.el;r.elIni=c.ini;r.pausaAcc=c.pausaMs+extra;r.estado='running';
   if(c.cIni!=null){r.tomaIni=c.cIni;r.excl=c.cExcl+extra;r.finTs=0}
-  toast('Corte deshecho: '+T.elementos[c.el]);guardar();render()}
+  toast('Corte deshecho: '+nomEl(T,c));guardar();render()}
 
 function finalizar(){const r=T.rt;if(r.estado==='idle')return;
-  if((r.estado==='running'||r.estado==='paused')&&!confirm('Se descarta el elemento en curso ('+T.elementos[r.el]+'). ¿Finalizar?'))return;
+  if((r.estado==='running'||r.estado==='paused')&&!confirm('Se descarta el tramo en curso'+(LIBRE()?'':' ('+T.elementos[r.el]+')')+'. ¿Finalizar?'))return;
   const now=Date.now();
   if(r.estado==='paused'){T.pausas.push({ciclo:r.ciclo,el:r.el,ini:r.pausaIni,fin:now,motivo:$('#pMotivo').value.trim()+' (al finalizar)'});r.excl+=now-r.pausaIni}
-  if(r.el>0){r.ciclo++;r.el=0}
+  if(T.cortes.some(c=>c.ciclo===r.ciclo)){r.ciclo++;r.el=0}
   r.estado='idle';r.pausaAcc=0;r.finTs=now;
   soltarWL();
   guardar();render();toast('Toma detenida. Guardala en Archivo.')}
 
 $('#bBig').onclick=()=>{const e=T.rt.estado;if(e==='running')corte();else if(e==='paused')pausa();else iniciar()};
-$('#bPausa').onclick=pausa;$('#bUndo').onclick=deshacer;$('#bFin').onclick=finalizar;
+$('#bPausa').onclick=pausa;$('#bUndo').onclick=deshacer;$('#bFin').onclick=finalizar;$('#bFinObs').onclick=finObs;
 $('#cEnc').onchange=e=>{T.rt.encadenar=e.target.checked;guardar()};
+$('#ultDet').oninput=e=>{const c=T.cortes[T.cortes.length-1];if(c){c.det=e.target.value;guardar()}};
+/* Teclado (notebook): Espacio/Enter = corte · P = pausa · Ctrl+Z = deshacer · modo libre: 1–9 = actividad, N = nueva, F = fin de observación */
 document.addEventListener('keydown',e=>{if(tab!=='toma'||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   if(e.code==='Space'||e.code==='Enter'){e.preventDefault();$('#bBig').click()}
+  else if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();deshacer()}
   else if(e.key==='p'||e.key==='P')pausa();
-  else if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();deshacer()}});
-
+  else if(LIBRE()&&/^[1-9]$/.test(e.key)){const i=+e.key-1;if(i<T.elementos.length)corte(i)}
+  else if(LIBRE()&&(e.key==='n'||e.key==='N')){e.preventDefault();corteNueva()}
+  else if(LIBRE()&&(e.key==='f'||e.key==='F'))finObs()});
 function tick(){if(tab!=='toma')return;const r=T.rt,cur=tiempoActual();
   $('#tCrono').textContent=fmtE(lectura());
   const pz=T.pausas.reduce((a,p)=>a+(p.fin-p.ini),0)+(r.estado==='paused'?Date.now()-r.pausaIni:0);
-  $('#tTot').textContent='Elemento en curso: '+fmtE(cur)+'   ·   Pausas: '+fmtE(pz)}
+  $('#tTot').textContent=(LIBRE()?'Tramo en curso: ':'Elemento en curso: ')+fmtE(cur)+'   ·   Pausas: '+fmtE(pz)}
 setInterval(tick,100);
 
-function renderToma(){const r=T.rt,N=T.elementos.length;
+function renderToma(){const r=T.rt,N=T.elementos.length,L=LIBRE(),act=r.estado==='running'||r.estado==='paused';
   const nombres={idle:'Detenido',running:'Midiendo',paused:'EN PAUSA',between:'Entre observaciones'};
-  $('#tEstado').textContent=nombres[r.estado]+' · Obs '+r.ciclo+(N?' · Elemento '+(r.el+1)+'/'+N:'');
-  $('#tElem').textContent=(r.estado==='running'||r.estado==='paused')?T.elementos[r.el]:(N?'Listo para observación '+r.ciclo:'Sin elementos');
-  $('#tSig').textContent=N?('Sigue: '+(r.el+1<N?T.elementos[r.el+1]:(r.encadenar?'obs '+(r.ciclo+1)+' → '+T.elementos[0]:'fin de observación'))):'';
+  const cObs=T.cortes.filter(c=>c.ciclo===r.ciclo);
+  if(L){
+    $('#tEstado').textContent=nombres[r.estado]+' · Obs '+r.ciclo+' · '+cObs.length+' cortes';
+    $('#tElem').textContent=act?'Tramo '+(cObs.length+1):'Listo para observación '+r.ciclo;
+    $('#tSig').textContent=r.estado==='running'?'Tocá la actividad que terminó':'';
+  }else{
+    $('#tEstado').textContent=nombres[r.estado]+' · Obs '+r.ciclo+(N?' · Elemento '+(r.el+1)+'/'+N:'');
+    $('#tElem').textContent=act?T.elementos[r.el]:(N?'Listo para observación '+r.ciclo:'Sin elementos');
+    $('#tSig').textContent=N?('Sigue: '+(r.el+1<N?T.elementos[r.el+1]:(r.encadenar?'obs '+(r.ciclo+1)+' → '+T.elementos[0]:'fin de observación'))):'';
+  }
   const b=$('#bBig');
-  b.textContent=r.estado==='running'?'CORTE':r.estado==='paused'?'REANUDAR':'INICIAR OBS '+r.ciclo;
+  b.textContent=r.estado==='running'?(L?'CORTE (sin nombre)':'CORTE'):r.estado==='paused'?'REANUDAR':'INICIAR OBS '+r.ciclo;
+  b.classList.toggle('chico',L);
+  $('#paleta').hidden=!L;
+  if(L){const dis=r.estado!=='running'?' disabled':'';
+    $('#paleta').innerHTML=T.elementos.map((n,i)=>{const k=cObs.filter(c=>c.el===i).length;
+      return '<button data-i="'+i+'"'+dis+'>'+esc(n)+'<span class="cnt">'+(k?'×'+k+' en esta obs':'&nbsp;')+'</span></button>'}).join('')+
+      '<button class="nueva" data-nueva="1"'+dis+'>+ Nueva</button>';
+    $('#paleta').querySelectorAll('button').forEach(x=>x.onclick=()=>{if(x.dataset.nueva)corteNueva();else corte(+x.dataset.i)})}
+  $('#filaFinObs').hidden=!L;
+  $('#bFinObs').disabled=!(r.estado==='running'&&cObs.length);
+  $('#encTxt').textContent=L?'Encadenar observaciones (al tocar Fin de observación arranca la siguiente)':'Encadenar observaciones (al cortar el último elemento arranca la observación siguiente)';
   $('#bPausa').textContent=r.estado==='paused'?'Reanudar':'Pausa';
-  $('#bPausa').disabled=!(r.estado==='running'||r.estado==='paused');
+  $('#bPausa').disabled=!act;
   $('#bUndo').disabled=!(T.cortes.length&&(r.estado==='running'||r.estado==='between'));
   $('#bFin').disabled=r.estado==='idle';
   $('#pausaBox').hidden=r.estado!=='paused';
   $('#cEnc').checked=r.encadenar;
-  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'O'+c.ciclo+' · '+esc(T.elementos[c.el])+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')).join('<br>');
+  const u=T.cortes[T.cortes.length-1];$('#ultBox').hidden=!u;
+  if(u){$('#ultTxt').textContent='Último corte: O'+u.ciclo+' · '+nomEl(T,u)+(L&&u.el!=null?' #'+repDe(T,u):'')+' · '+(u.ms/1000).toFixed(2)+' s';
+    if(document.activeElement!==$('#ultDet'))$('#ultDet').value=u.det||''}
+  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'O'+c.ciclo+' · '+esc(nomEl(T,c))+(L&&c.el!=null?' #'+repDe(T,c):'')+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')+(c.det?' — '+esc(c.det):'')).join('<br>');
   const ev=evalObs();
-  $('#tNec').textContent=ev?('Observaciones: '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 observaciones';
+  $('#tNec').textContent=ev?('Mediciones (mín.): '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 mediciones';
   tick()}
-
 /* ---------- Datos ---------- */
 function renderDatos(){
   $('#cab').innerHTML=CAB.map(([k,l])=>'<div><label>'+l+'</label><input data-k="'+k+'" value="'+esc(T.cab[k])+'"'+(k==='fecha'?' type="date"':'')+'></div>').join('');
   $('#cab').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.cab[i.dataset.k]=i.value;guardar()});
-  const lock=T.cortes.length>0;
-  $('#els').innerHTML=T.elementos.map((n,i)=>'<div class="el"><span>'+(i+1)+'</span><input data-i="'+i+'" value="'+esc(n)+'">'+
-    (lock?'':'<button data-up="'+i+'">↑</button><button data-dn="'+i+'">↓</button><button data-rm="'+i+'">✕</button>')+'</div>').join('');
+  const L=LIBRE(),hay=T.cortes.length>0,quieto=!hay&&T.rt.estado==='idle';
+  document.querySelectorAll('#modoSel button').forEach(b=>{b.classList.toggle('on',b.dataset.m===T.modo);b.disabled=!quieto&&b.dataset.m!==T.modo});
+  $('#modoTxt').textContent=L?'Sin desglose previo: cada corte se asigna tocando la actividad que terminó; las actividades nuevas se crean durante la toma con "+ Nueva". Cada repetición se mide por separado y se numera sola. La observación se cierra con "Fin de observación".'
+    :'Elementos fijos y en orden: cada corte pasa al elemento siguiente y la observación se cierra sola al cortar el último.';
+  $('#elsTit').textContent=L?'Actividades':'Desglose de elementos';
+  // Con cortes registrados no se borra ni reordena: los cortes apuntan a la posición del elemento
+  $('#els').innerHTML=T.elementos.length?T.elementos.map((n,i)=>'<div class="el"><span>'+(i+1)+'</span><input data-i="'+i+'" value="'+esc(n)+'">'+
+    (hay?'':'<button data-up="'+i+'">↑</button><button data-dn="'+i+'">↓</button><button data-rm="'+i+'">✕</button>')+'</div>').join('')
+    :(L?'<p class="mut" style="font-size:13px">Sin actividades cargadas: se crean durante la toma con "+ Nueva". También se pueden cargar algunas de antemano.</p>':'');
   $('#els').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.elementos[+i.dataset.i]=i.value;guardar()});
   $('#els').querySelectorAll('button').forEach(b=>b.onclick=()=>{const E=T.elementos;
     if(b.dataset.up!=null){const i=+b.dataset.up;if(i>0)[E[i-1],E[i]]=[E[i],E[i-1]]}
     else if(b.dataset.dn!=null){const i=+b.dataset.dn;if(i<E.length-1)[E[i+1],E[i]]=[E[i],E[i+1]]}
     else if(b.dataset.rm!=null){E.splice(+b.dataset.rm,1)}
     guardar();renderDatos()});
-  $('#bAddEl').disabled=lock;$('#bLoadTpl').disabled=lock;
-  $('#lockMsg').textContent=lock?'Ya hay cortes registrados: el orden y la cantidad de elementos quedan fijos (los nombres se pueden corregir).':'';
+  $('#bAddEl').textContent=L?'+ Agregar actividad':'+ Agregar elemento';
+  $('#bAddEl').disabled=hay&&!L;$('#bLoadTpl').disabled=hay;
+  $('#lockMsg').textContent=hay?(L?'Ya hay cortes registrados: se pueden agregar actividades y corregir nombres, pero no borrar ni reordenar.'
+    :'Ya hay cortes registrados: el orden y la cantidad de elementos quedan fijos (los nombres se pueden corregir).'):'';
   const tpl=lsGet(LS_TPL,{});
   $('#selTpl').innerHTML='<option value="">— plantillas —</option>'+Object.keys(tpl).map(k=>'<option>'+esc(k)+'</option>').join('')}
-$('#bAddEl').onclick=()=>{T.elementos.push('Elemento '+(T.elementos.length+1));guardar();renderDatos()};
+$('#modoSel').querySelectorAll('button').forEach(b=>b.onclick=()=>{const m=b.dataset.m;
+  if(m===T.modo||T.cortes.length||T.rt.estado!=='idle')return;T.modo=m;
+  if(m==='libre'&&T.elementos.length===1&&T.elementos[0]==='Elemento 1')T.elementos=[];
+  if(m==='sec'&&!T.elementos.length)T.elementos=['Elemento 1'];
+  guardar();renderDatos()});
+$('#bAddEl').onclick=()=>{T.elementos.push((LIBRE()?'Actividad ':'Elemento ')+(T.elementos.length+1));guardar();renderDatos()};
 $('#bSaveTpl').onclick=()=>{const n=prompt('Nombre de la plantilla:',T.cab.maquina||'');if(!n)return;const t=lsGet(LS_TPL,{});t[n]=T.elementos.slice();lsSet(LS_TPL,t);renderDatos();toast('Plantilla guardada')};
 $('#bLoadTpl').onclick=()=>{const n=$('#selTpl').value;if(!n)return;T.elementos=lsGet(LS_TPL,{})[n].slice();guardar();renderDatos()};
 $('#bDelTpl').onclick=()=>{const n=$('#selTpl').value;if(!n||!confirm('¿Borrar plantilla "'+n+'"?'))return;const t=lsGet(LS_TPL,{});delete t[n];lsSet(LS_TPL,t);renderDatos()};
@@ -274,38 +359,76 @@ function evalObs(){let max=0,crit='',n=Infinity;
 function celdasN(v,th){const r=nNec(v),tg=th?'th':'td';
   if(r==null)return '<'+tg+' class="mut">—</'+tg+'><'+tg+'></'+tg+'>';
   return '<'+tg+'>'+r+'</'+tg+'><'+tg+'>'+(v.length>=r?'OK':'<span style="color:var(--warn)">faltan '+(r-v.length)+'</span>')+'</'+tg+'>'}
-function renderRes(){const C=ciclos();
-  $('#selPrec').value=String(T.prec);
-  if(!C.length){$('#tabla').innerHTML='<p class="mut" style="padding:10px">Todavía no hay cortes.</p>';$('#notas').innerHTML='';return}
+const f2=x=>x.toFixed(2);
+function est(v){return {n:v.length,m:v.reduce((a,b)=>a+b,0)/v.length,mi:Math.min(...v),ma:Math.max(...v)}}
+function selVal(k,v){return '<select data-v="'+k+'">'+Object.keys(VAL).map(o=>'<option value="'+o+'"'+(v===o?' selected':'')+'>'+(o||'·')+'</option>').join('')+'</select>'}
+
+/* Modo secuencial: matriz elemento × observación */
+function tablaSec(C){
   let h='<table><tr><th>Elemento</th>'+C.map(c=>'<th>O'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>Mín</th><th>Máx</th><th>N\'</th><th>Estado</th></tr>';
   T.elementos.forEach((nm,e)=>{const v=[];
     h+='<tr><td>'+esc(nm)+'</td>';
     C.forEach(c=>{const k=T.cortes.findIndex(x=>x.ciclo===c&&x.el===e);
       if(k<0){h+='<td class="mut">—</td>';return}
       const x=T.cortes[k];v.push(x.ms/1000);
-      h+='<td>'+(x.ms/1000).toFixed(2)+(x.pausaMs?'<span class="p">p</span>':'')+'<br><select data-k="'+k+'">'+
-        Object.keys(VAL).map(o=>'<option value="'+o+'"'+(x.val===o?' selected':'')+'>'+(o||'·')+'</option>').join('')+'</select></td>'});
-    const m=v.length?v.reduce((a,b)=>a+b,0)/v.length:0;
-    h+='<td>'+v.length+'</td><td>'+(v.length?m.toFixed(2):'—')+'</td><td>'+(v.length?Math.min(...v).toFixed(2):'—')+'</td><td>'+(v.length?Math.max(...v).toFixed(2):'—')+'</td>'+celdasN(v)+'</tr>'});
+      h+='<td>'+f2(x.ms/1000)+(x.pausaMs?'<span class="p">p</span>':'')+'<br>'+selVal(k,x.val)+'</td>'});
+    h+='<td>'+v.length+'</td>'+(v.length?(s=>'<td>'+f2(s.m)+'</td><td>'+f2(s.mi)+'</td><td>'+f2(s.ma)+'</td>')(est(v)):'<td>—</td><td>—</td><td>—</td>')+celdasN(v)+'</tr>'});
   const tc=[];
   h+='<tr><th>Total observación</th>'+C.map(c=>{const cs=T.cortes.filter(x=>x.ciclo===c),t=cs.reduce((a,x)=>a+x.ms,0)/1000,comp=cs.length===T.elementos.length;
-    if(comp)tc.push(t);return '<th>'+t.toFixed(2)+(comp?'':'*')+'</th>'}).join('')+
-    '<th>'+tc.length+'</th><th>'+(tc.length?(tc.reduce((a,b)=>a+b,0)/tc.length).toFixed(2):'—')+'</th><th></th><th></th>'+celdasN(tc,true)+'</tr></table>';
-  $('#tabla').innerHTML=h+'<p class="mut" style="font-size:12px;padding:0 8px">* observación incompleta (no entra en n, media ni N\' del total)</p>';
-  $('#tabla').querySelectorAll('select').forEach(s=>s.onchange=()=>{T.cortes[+s.dataset.k].val=s.value;guardar()});
+    if(comp)tc.push(t);return '<th>'+f2(t)+(comp?'':'*')+'</th>'}).join('')+
+    '<th>'+tc.length+'</th><th>'+(tc.length?f2(tc.reduce((a,b)=>a+b,0)/tc.length):'—')+'</th><th></th><th></th>'+celdasN(tc,true)+'</tr></table>';
+  return h+'<p class="mut" style="font-size:12px;padding:0 8px">* observación incompleta (no entra en n, media ni N\' del total)</p>'}
+
+/* Modo libre: resumen por actividad (cada repetición es una medición) + total por observación */
+function tablaLibre(C){const cerr=C.filter(c=>c<T.rt.ciclo),nc=cerr.length;
+  let h='<table><tr><th>Actividad</th><th>n</th><th>Media</th><th>Mín</th><th>Máx</th><th>Veces/obs</th><th>Total/obs</th><th>N\'</th><th>Estado</th></tr>';
+  const filas=T.elementos.map((nm,e)=>({nm,e}));if(T.cortes.some(c=>c.el==null))filas.push({nm:'(sin nombre)',e:null});
+  filas.forEach(({nm,e})=>{const cs=T.cortes.filter(c=>c.el===e);if(!cs.length)return;
+    const v=cs.map(c=>c.ms/1000),s=est(v),csC=cs.filter(c=>cerr.includes(c.ciclo));
+    h+='<tr><td>'+esc(nm)+'</td><td>'+s.n+'</td><td>'+f2(s.m)+'</td><td>'+f2(s.mi)+'</td><td>'+f2(s.ma)+'</td>'+
+      '<td>'+(nc?(csC.length/nc).toFixed(1):'—')+'</td><td>'+(nc?f2(csC.reduce((a,c)=>a+c.ms/1000,0)/nc):'—')+'</td>'+
+      (e==null?'<td></td><td></td>':celdasN(v))+'</tr>'});
+  h+='</table>';
+  const tc=[];
+  let t2='<table style="margin-top:10px"><tr><th>Total observación</th>'+C.map(c=>'<th>O'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>N\'</th><th>Estado</th></tr><tr><td>Tiempo [s]</td>';
+  C.forEach(c=>{const t=T.cortes.filter(x=>x.ciclo===c).reduce((a,x)=>a+x.ms,0)/1000,ok=cerr.includes(c);if(ok)tc.push(t);t2+='<td>'+f2(t)+(ok?'':'*')+'</td>'});
+  t2+='<td>'+tc.length+'</td><td>'+(tc.length?f2(tc.reduce((a,b)=>a+b,0)/tc.length):'—')+'</td>'+celdasN(tc)+'</tr></table>';
+  return h+t2+'<p class="mut" style="font-size:12px;padding:0 8px">* observación en curso (no entra en Veces/obs, Total/obs ni en el total)</p>'}
+
+/* Ambos modos: lista cronológica de cortes, con valoración y detalle editables */
+function tablaDetalle(){const L=LIBRE();
+  const opts=sel=>'<option value=""'+(sel==null?' selected':'')+'>(sin nombre)</option>'+T.elementos.map((n,i)=>'<option value="'+i+'"'+(sel===i?' selected':'')+'>'+esc(n)+'</option>').join('');
+  let h='<table><tr><th>Obs</th><th>#</th><th style="text-align:left">'+(L?'Actividad':'Elemento')+'</th>'+(L?'<th>Rep</th>':'')+'<th>Lectura</th><th>t [s]</th><th>Val.</th><th style="text-align:left">Detalle</th></tr>';
+  let prev=null,ord=0;
+  ordenados(T).forEach(({c,k})=>{if(c.ciclo!==prev){prev=c.ciclo;ord=0}ord++;
+    h+='<tr><td>O'+c.ciclo+'</td><td>'+ord+'</td><td style="text-align:left">'+(L?'<select data-a="'+k+'">'+opts(c.el)+'</select>':esc(nomEl(T,c)))+'</td>'+
+      (L?'<td>'+repDe(T,c)+'</td>':'')+'<td>'+(c.lect!=null?fmtE(c.lect):'—')+'</td><td>'+f2(c.ms/1000)+(c.pausaMs?'<span class="p">p</span>':'')+'</td>'+
+      '<td>'+selVal(k,c.val)+'</td><td style="text-align:left"><input class="det" data-d="'+k+'" value="'+esc(c.det||'')+'" placeholder="—"></td></tr>'});
+  return h+'</table>'}
+
+function renderRes(){const C=ciclos(),L=LIBRE();
+  $('#selPrec').value=String(T.prec);
+  $('#resTit').textContent=L?'Resumen por actividad [s]':'Tiempos por elemento [s]';
+  $('#resNota').textContent=L?'n = mediciones de la actividad (todas sus repeticiones, en todas las observaciones). Veces/obs y Total/obs: promedio sobre las observaciones cerradas.':'';
+  if(!C.length){$('#tabla').innerHTML='<p class="mut" style="padding:10px">Todavía no hay cortes.</p>';$('#notas').innerHTML='';$('#detalle').innerHTML='';return}
+  $('#tabla').innerHTML=L?tablaLibre(C):tablaSec(C);
+  $('#detalle').innerHTML=tablaDetalle();
+  document.querySelectorAll('#v-res select[data-v]').forEach(s=>s.onchange=()=>{T.cortes[+s.dataset.v].val=s.value;guardar();renderRes()});
+  document.querySelectorAll('#v-res select[data-a]').forEach(s=>s.onchange=()=>{T.cortes[+s.dataset.a].el=s.value===''?null:+s.value;guardar();renderRes()});
+  document.querySelectorAll('#v-res input[data-d]').forEach(i=>i.oninput=()=>{T.cortes[+i.dataset.d].det=i.value;guardar()});
   $('#notas').innerHTML=C.map(c=>'<div class="el"><span>O'+c+'</span><input data-c="'+c+'" value="'+esc(T.notas[c]||'')+'" placeholder="Nota"></div>').join('');
   $('#notas').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.notas[i.dataset.c]=i.value;guardar()})}
-
 $('#selPrec').onchange=e=>{T.prec=+e.target.value;guardar();renderRes()};
 
 /* ---------- Archivo / CSV ---------- */
-function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   const n=x=>x.toFixed(2).replace('.',',');
-  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Observacion','N_elem','Elemento','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Motivo_pausa','Nota'];
-  const rows=t.cortes.slice().sort((a,b)=>a.ciclo-b.ciclo||a.el-b.el).map(c=>[
-    t.cab.estudio,t.cab.maquina,t.cab.producto,t.cab.operario,t.cab.observador,t.cab.turno,t.cab.fecha,
-    c.ciclo,c.el+1,t.elementos[c.el],fmtH(c.ini),fmtH(c.fin),c.lect!=null?n(c.lect/1000):'',n(c.ms/1000),n(c.pausaMs/1000),VAL[c.val]||'',
-    t.pausas.filter(p=>p.ciclo===c.ciclo&&p.el===c.el).map(p=>p.motivo||'s/motivo').join(' | '),t.notas[c.ciclo]||''].map(q).join(';'));
+  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Modo','Observacion','Orden','Elemento','Rep','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Detalle','Motivo_pausa','Nota'];
+  let prev=null,ord=0;
+  const rows=ordenados(t).map(({c})=>{if(c.ciclo!==prev){prev=c.ciclo;ord=0}ord++;return [
+    t.cab.estudio,t.cab.maquina,t.cab.producto,t.cab.operario,t.cab.observador,t.cab.turno,t.cab.fecha,t.modo==='libre'?'Libre':'Secuencial',
+    c.ciclo,ord,nomEl(t,c),repDe(t,c),fmtH(c.ini),fmtH(c.fin),c.lect!=null?n(c.lect/1000):'',n(c.ms/1000),n(c.pausaMs/1000),VAL[c.val]||'',c.det||'',
+    t.pausas.filter(p=>p.ciclo===c.ciclo&&p.ini>=c.ini&&p.ini<=c.fin).map(p=>p.motivo||'s/motivo').join(' | '),t.notas[c.ciclo]||''].map(q).join(';')});
   return [head.join(';'),...rows].join('\r\n')}
 function nombreArch(t){const s=x=>String(x||'').trim().replace(/[^\w\-]+/g,'_');
   const d=new Date(t.id);return 'toma_'+(s(t.cab.maquina)||'sin_maquina')+'_'+(t.cab.fecha||hoy())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.csv'}
@@ -351,8 +474,8 @@ $('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
 $('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador');
 $('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
   if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar una nueva?'))return;
-  if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab);
-  T=nuevaToma();T.elementos=el;['estudio','maquina','producto','observador','turno'].forEach(k=>T.cab[k]=cab[k]);
+  if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab),modo=T.modo;
+  T=nuevaToma();T.modo=modo;T.elementos=el;['estudio','maquina','producto','observador','turno'].forEach(k=>T.cab[k]=cab[k]);
   guardar();go('datos');toast('Nueva toma (se copió el encabezado y el desglose)')};
 function renderArch(){const h=lsGet(LS_HIST,[]);
   $('#hist').innerHTML=h.length?h.map((t,i)=>{const nc=new Set(t.cortes.map(c=>c.ciclo)).size;

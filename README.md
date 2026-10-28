@@ -9,6 +9,17 @@ Una sola fuente, dos formas de uso:
 | Navegador (PC, notebook, celular) | `web/toma_tiempos.html` |
 | App Android | APK en **Releases** (se compila desde el mismo HTML) |
 
+## Modos de toma
+
+| Modo | Uso |
+|---|---|
+| **Secuencial** | Elementos fijos y en orden. Cada corte pasa al siguiente; la observación se cierra sola al cortar el último. |
+| **Libre** | Sin desglose previo. Cada corte se asigna tocando la actividad que terminó; las nuevas se crean con "+ Nueva". Las repeticiones se miden por separado y se numeran solas (#1, #2…). La observación se cierra con "Fin de observación". |
+
+En ambos modos, cada corte admite un **detalle** (texto libre; se puede dictar con el micrófono del teclado).
+
+Teclado (notebook): Espacio/Enter = corte · P = pausa · Ctrl+Z = deshacer · en modo libre: 1–9 = actividad, N = nueva, F = fin de observación.
+
 ## Estructura
 
 ```
