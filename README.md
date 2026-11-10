@@ -20,6 +20,16 @@ En ambos modos, cada corte admite un **detalle** (texto libre; se puede dictar c
 
 Teclado (notebook): Espacio/Enter = corte · P = pausa · Ctrl+Z = deshacer · en modo libre: 1–9 = actividad, N = nueva, F = fin de observación.
 
+## Pantalla dividida
+
+El botón **⧉** divide la pantalla en dos paneles (A y B), cada uno con una toma independiente: sirve para tomar dos puestos a la vez.
+En horizontal quedan lado a lado; en vertical, uno arriba del otro.
+
+- Historial y plantillas son compartidos; cada panel tiene su propia toma actual.
+- Una misma toma no se puede abrir en dos pantallas a la vez.
+- Con la pantalla dividida, la pantalla queda encendida todo el tiempo.
+- Si la app se cierra dividida, vuelve dividida y cada panel sigue donde estaba.
+
 ## Estructura
 
 ```

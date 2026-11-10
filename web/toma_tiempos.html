@@ -8,6 +8,29 @@
 :root{--bg:#f3f3f1;--fg:#1c1c1c;--mut:#6a6a66;--line:#cbcbc6;--card:#fff;--acc:#1f4e79;--accfg:#fff;--warn:#8a5a00;--bad:#8b1e1e}
 @media (prefers-color-scheme:dark){:root{--bg:#151515;--fg:#e6e6e3;--mut:#9a9a95;--line:#3a3a37;--card:#1f1f1f;--acc:#3f73a3;--accfg:#fff;--warn:#d09a3a;--bad:#d06464}}
 *{box-sizing:border-box}
+/* Pantalla dividida (documento principal) */
+body.div-on>nav,body.div-on>main{display:none}
+#dividida{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.divbar{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--card);font-size:13px;color:var(--mut)}
+.divbar span{flex:1}
+.divbar button{padding:6px 14px}
+.divpaneles{flex:1;display:flex;flex-direction:row;min-height:0}
+.divpaneles iframe{flex:1;border:0;min-width:0;min-height:0;width:100%;height:100%;background:var(--bg)}
+.divpaneles iframe+iframe{border-left:3px solid var(--line)}
+@media (orientation:portrait){.divpaneles{flex-direction:column}.divpaneles iframe+iframe{border-left:0;border-top:3px solid var(--line)}}
+/* Dentro de un panel: más compacto */
+html.panel main{padding:8px 10px 30px}
+html.panel nav{padding:4px;gap:3px}
+html.panel nav button{padding:8px 2px;font-size:14px}
+html.panel .crono{font-size:46px;margin:6px 0 2px}
+html.panel .elem{font-size:20px;min-height:26px;margin:2px 0}
+html.panel .big{height:20vh;min-height:90px;font-size:26px}
+html.panel .big.chico{height:auto;min-height:54px;font-size:17px}
+html.panel .paleta{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+html.panel .paleta button{min-height:72px;font-size:15px}
+nav .ptag{flex:0 0 auto;min-width:38px;font-weight:700;background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+nav #bDividir{flex:0 0 auto;min-width:44px}
+nav .ptag:disabled{opacity:1}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
 nav{display:flex;gap:4px;padding:6px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
@@ -64,10 +87,12 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
 </head>
 <body>
 <nav>
+  <button class="ptag" id="pTag" hidden disabled></button>
   <button data-t="toma">Toma</button>
   <button data-t="datos">Datos</button>
   <button data-t="res">Resultados</button>
   <button data-t="arch">Archivo</button>
+  <button id="bDividir" title="Pantalla dividida: dos tomas a la vez">⧉</button>
 </nav>
 <main>
 
@@ -145,10 +170,17 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
-const LS_CUR='tt_actual',LS_HIST='tt_historial',LS_TPL='tt_plantillas';
+/* Pantalla dividida: el documento principal muestra dos iframes de esta misma página (#panel=A y #panel=B).
+   Cada panel es una toma independiente (su propia "toma actual"); historial y plantillas son compartidos. */
+const PANEL=(location.hash.match(/panel=([AB])/)||[])[1]||null;
+if(PANEL)document.documentElement.classList.add('panel');
+const LS_CUR=PANEL?'tt_actual_'+PANEL:'tt_actual',LS_HIST='tt_historial',LS_TPL='tt_plantillas',LS_DIV='tt_dividido';
+const CLAVES_ACTUAL=['tt_actual','tt_actual_A','tt_actual_B'];
+/* ¿Esa toma está abierta en otra pantalla (principal u otro panel)? Evita editar la misma toma en dos lugares */
+function abiertaEnOtro(id){return CLAVES_ACTUAL.filter(k=>k!==LS_CUR).some(k=>{const t=lsGet(k,null);return t&&t.id===id})}
 const $=s=>document.querySelector(s);
 const pad=(n,l=2)=>String(n).padStart(l,'0');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -181,10 +213,10 @@ function repDe(t,c){if(c.el==null)return '';return t.cortes.filter(x=>x.ciclo===
 function ordenados(t){return t.cortes.map((c,k)=>({c,k})).sort((a,b)=>a.c.ciclo-b.c.ciclo||a.c.fin-b.c.fin)}
 /* ---------- Pantalla siempre encendida ---------- */
 let wl=null;
-function soltarWL(){if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
-async function pedirWL(){if(AND){try{AND.pantalla(true)}catch(e){}return}
+function soltarWL(){if(PANEL)return;if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
+async function pedirWL(){if(PANEL)return;if(AND){try{AND.pantalla(true)}catch(e){}return}
   try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&T.rt.estado!=='idle')pedirWL()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(T.rt.estado!=='idle'||divEl))pedirWL()});
 
 /* ---------- Cronómetro ---------- */
 function tiempoActual(){const r=T.rt,now=Date.now();
@@ -449,7 +481,8 @@ $('#filaShare').hidden=!AND;
 /* ---------- Respaldo completo ---------- */
 $('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();
   const r={app:'toma_tiempos',formato:1,version:VERSION,fecha:new Date().toISOString(),
-    actual:T,historial:lsGet(LS_HIST,[]),plantillas:lsGet(LS_TPL,{})};
+    actual:T,otras:CLAVES_ACTUAL.filter(k=>k!==LS_CUR).map(k=>lsGet(k,null)).filter(t=>t&&t.cortes&&t.cortes.length),
+    historial:lsGet(LS_HIST,[]),plantillas:lsGet(LS_TPL,{})};
   const d=new Date();
   descargar('respaldo_toma_tiempos_'+hoy()+'_'+pad(d.getHours())+pad(d.getMinutes())+'.json',JSON.stringify(r),'application/json');renderArch()};
 $('#bRest').onclick=()=>{$('#fRest').value='';$('#fRest').click()};
@@ -459,6 +492,7 @@ $('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
     if(!r||r.app!=='toma_tiempos'||!Array.isArray(r.historial)){toast('El archivo no es un respaldo de Toma de Tiempos');return}
     const h=lsGet(LS_HIST,[]),ids=new Set(h.map(t=>t.id)),tpl=lsGet(LS_TPL,{});
     const nuevas=r.historial.slice();
+    (r.otras||[]).forEach(t=>{if(t&&!nuevas.some(x=>x.id===t.id))nuevas.push(t)});
     if(r.actual&&r.actual.cortes&&r.actual.cortes.length&&!r.historial.some(t=>t.id===r.actual.id))nuevas.push(r.actual);
     const agregar=nuevas.filter(t=>t&&t.id!=null&&Array.isArray(t.cortes)&&!ids.has(t.id));
     const tplNuevas=Object.keys(r.plantillas||{}).filter(k=>!(k in tpl));
@@ -471,7 +505,7 @@ $('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
     toast(ok?'Respaldo restaurado':'No se pudo restaurar (almacenamiento lleno)');renderArch()};
   rd.onerror=()=>toast('No se pudo leer el archivo');
   rd.readAsText(f,'utf-8')};
-$('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador');
+$('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador')+(PANEL?' · panel '+PANEL:'');
 $('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
   if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar una nueva?'))return;
   if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab),modo=T.modo;
@@ -483,6 +517,7 @@ function renderArch(){const h=lsGet(LS_HIST,[]);
     '<button data-ab="'+i+'">Abrir</button><button data-csv="'+i+'">CSV</button><button data-del="'+i+'">✕</button></div>'}).join(''):'<p class="mut">Sin tomas guardadas.</p>';
   $('#hist').querySelectorAll('button').forEach(b=>b.onclick=()=>{const h=lsGet(LS_HIST,[]);
     if(b.dataset.ab!=null){if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
+      if(abiertaEnOtro(h[+b.dataset.ab].id)){toast('Esa toma está abierta en otra pantalla');return}
       if(T.cortes.length)guardarHist();T=migrar(JSON.parse(JSON.stringify(lsGet(LS_HIST,[])[+b.dataset.ab])));guardar();go('res')}
     else if(b.dataset.csv!=null){const t=h[+b.dataset.csv];descargar(nombreArch(t),aCSV(t))}
     else if(b.dataset.del!=null){const t=h[+b.dataset.del];if(!confirm('¿Borrar la toma de '+(t.cab.maquina||'')+' '+t.cab.fecha+'? No se puede recuperar.'))return;
@@ -493,8 +528,30 @@ let tab='toma';
 function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   ['toma','datos','res','arch'].forEach(k=>$('#v-'+k).hidden=k!==t);render()}
 function render(){({toma:renderToma,datos:renderDatos,res:renderRes,arch:renderArch})[tab]()}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+document.querySelectorAll('nav button[data-t]').forEach(b=>b.onclick=()=>go(b.dataset.t));
 go(T.cortes.length||T.rt.estado!=='idle'?'toma':'datos');
+
+/* ---------- Pantalla dividida ---------- */
+let divEl=null;
+function entrarDividida(forzar){if(PANEL||divEl)return;
+  if(!forzar&&T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
+  lsSet(LS_DIV,1);
+  const base=location.href.split('#')[0];
+  divEl=document.createElement('div');divEl.id='dividida';
+  divEl.innerHTML='<div class="divbar"><span>Pantalla dividida · A y B son tomas independientes</span><button id="bSalirDiv">Salir</button></div>'+
+    '<div class="divpaneles"><iframe src="'+base+'#panel=A" title="Panel A"></iframe><iframe src="'+base+'#panel=B" title="Panel B"></iframe></div>';
+  document.body.appendChild(divEl);document.body.classList.add('div-on');
+  $('#bSalirDiv').onclick=salirDividida;
+  pedirWL()}   // con la pantalla dividida, la pantalla queda encendida todo el tiempo
+function salirDividida(){
+  const enCurso=['A','B'].filter(p=>{const t=lsGet('tt_actual_'+p,null);return t&&t.rt&&t.rt.estado!=='idle'});
+  if(enCurso.length&&!confirm('Panel '+enCurso.join(' y ')+': toma en curso. Queda guardada y sigue al volver a dividir. ¿Salir?'))return;
+  lsSet(LS_DIV,0);divEl.remove();divEl=null;document.body.classList.remove('div-on');
+  if(T.rt.estado==='idle')soltarWL();
+  render()}
+if(PANEL){$('#bDividir').hidden=true;$('#pTag').hidden=false;$('#pTag').textContent=PANEL}
+else{$('#bDividir').onclick=()=>entrarDividida(false);
+  if(lsGet(LS_DIV,0)==1)entrarDividida(true)}   // si la app se cerró con la pantalla dividida, vuelve igual
 </script>
 </body>
 </html>
