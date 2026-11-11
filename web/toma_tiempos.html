@@ -156,7 +156,8 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
   <h2>Toma actual</h2>
   <div class="fila"><button class="pri" id="bGuardar">Guardar</button><button id="bCSV">Exportar CSV</button></div>
   <div class="fila" id="filaShare" hidden><button id="bShare">Compartir CSV</button></div>
-  <div class="fila"><button id="bNueva">Nueva toma</button></div>
+  <div class="fila"><button id="bNueva">Nueva toma</button><button id="bRepetir">Repetir toma</button></div>
+  <p class="mut" style="font-size:12px;margin:0">Nueva: en blanco (conserva observador y modo). Repetir: copia encabezado y desglose para seguir con el mismo puesto.</p>
   <h2>Tomas guardadas</h2>
   <div class="lista" id="hist"></div>
   <h2>Respaldo</h2>
@@ -170,7 +171,7 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.3.0';
+const VERSION='1.3.1';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 /* Pantalla dividida: el documento principal muestra dos iframes de esta misma página (#panel=A y #panel=B).
@@ -506,11 +507,16 @@ $('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
   rd.onerror=()=>toast('No se pudo leer el archivo');
   rd.readAsText(f,'utf-8')};
 $('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador')+(PANEL?' · panel '+PANEL:'');
-$('#bNueva').onclick=()=>{if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
-  if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar una nueva?'))return;
+/* repetir=false: toma en blanco (solo conserva observador y modo). repetir=true: copia encabezado y desglose */
+function empezarToma(repetir){if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
+  if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar '+(repetir?'la repetición':'una nueva')+'?'))return;
   if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab),modo=T.modo;
-  T=nuevaToma();T.modo=modo;T.elementos=el;['estudio','maquina','producto','observador','turno'].forEach(k=>T.cab[k]=cab[k]);
-  guardar();go('datos');toast('Nueva toma (se copió el encabezado y el desglose)')};
+  T=nuevaToma();T.modo=modo;T.cab.observador=cab.observador;
+  if(repetir){T.elementos=el;['estudio','maquina','producto','turno'].forEach(k=>T.cab[k]=cab[k])}
+  else T.elementos=modo==='libre'?[]:['Elemento 1'];
+  guardar();go('datos');toast(repetir?'Repetición: se copió el encabezado y el desglose':'Nueva toma en blanco')}
+$('#bNueva').onclick=()=>empezarToma(false);
+$('#bRepetir').onclick=()=>empezarToma(true);
 function renderArch(){const h=lsGet(LS_HIST,[]);
   $('#hist').innerHTML=h.length?h.map((t,i)=>{const nc=new Set(t.cortes.map(c=>c.ciclo)).size;
     return '<div class="it"><div><b>'+esc(t.cab.maquina||'(sin máquina)')+'</b> · '+esc(t.cab.fecha)+'<br><span class="mut">'+esc(t.cab.estudio)+' · '+nc+' observaciones · '+t.cortes.length+' cortes'+(t.id===T.id?' · <b>abierta</b>':'')+'</span></div>'+
