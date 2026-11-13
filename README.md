@@ -22,6 +22,10 @@ Teclado (notebook): Espacio/Enter = corte · P = pausa · Ctrl+Z = deshacer · e
 
 En modo libre las actividades se pueden borrar y reordenar aunque ya tengan cortes (los cortes de una actividad borrada quedan "sin nombre"). En la botonera, **mantener apretado un botón y arrastrarlo** sobre otro cambia el orden; una pulsación larga nunca registra un corte.
 
+## Ajustes (⚙)
+
+Compartidos por todas las pantallas y paneles: tema (automático / claro / oscuro), tamaño de texto, pantalla encendida (durante la toma / siempre / nunca), vibración y sonido al cortar, valores por defecto de tomas nuevas (observador, precisión de N', encadenar), unidad de tiempo para resultados y CSV (s / min / centésimas de minuto) y formato del CSV (Excel `;` y coma decimal, o estándar `,` y punto).
+
 ## Datos y respaldo
 
 - Las tomas se guardan dentro de la app. **Desinstalar o "Borrar datos" las elimina.**

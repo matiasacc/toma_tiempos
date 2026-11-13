@@ -16,8 +16,12 @@
 /* Paleta sobria: azul pizarra + un solo acento celeste (--amb = acento). Sin redondeos grandes ni tarjetas. */
 :root{--bg:#eceeef;--fg:#16202a;--mut:#5a6570;--line:#c6cdd3;--card:#f8f9fa;--btn:#d9dfe4;--acc:#1b2a38;--accfg:#eef3f7;
   --amb:#2f86cf;--ambfg:#ffffff;--warn:#a35a06;--disp:#121b24;--dispfg:#eef3f7;--dispmut:#8796a4}
-@media (prefers-color-scheme:dark){:root{--bg:#0d1217;--fg:#e3e9ee;--mut:#8593a0;--line:#26323d;--card:#141b22;--btn:#212c37;--acc:#18232e;--accfg:#e3e9ee;
-  --amb:#4aa3e6;--ambfg:#0b1117;--warn:#e3a243;--disp:#070b0f;--dispfg:#eef3f7;--dispmut:#71808d}}
+/* Tema: automático (según el sistema), claro u oscuro (Ajustes) */
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0d1217;--fg:#e3e9ee;--mut:#8593a0;--line:#26323d;--card:#141b22;--btn:#212c37;--acc:#18232e;--accfg:#e3e9ee;
+  --amb:#4aa3e6;--ambfg:#0b1117;--warn:#e3a243;--disp:#070b0f;--dispfg:#eef3f7;--dispmut:#71808d;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0d1217;--fg:#e3e9ee;--mut:#8593a0;--line:#26323d;--card:#141b22;--btn:#212c37;--acc:#18232e;--accfg:#e3e9ee;
+  --amb:#4aa3e6;--ambfg:#0b1117;--warn:#e3a243;--disp:#070b0f;--dispfg:#eef3f7;--dispmut:#71808d;color-scheme:dark}
+:root[data-theme=light]{color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
@@ -29,7 +33,15 @@ nav button{flex:1;padding:14px 4px 11px;background:none;border:0;border-bottom:3
 nav button.on{color:var(--accfg);border-bottom-color:var(--amb)}
 nav .ptag{flex:0 0 auto;min-width:40px;background:var(--amb);color:var(--ambfg);border-bottom-color:var(--amb);font-size:15px}
 nav .ptag:disabled{opacity:1}
-nav #bDividir{flex:0 0 auto;min-width:48px;font-size:18px;letter-spacing:0;text-transform:none}
+nav #bDividir,nav #bAjustes{flex:0 0 auto;min-width:48px;font-size:18px;letter-spacing:0;text-transform:none}
+.ajf{display:grid;grid-template-columns:170px 1fr;gap:6px 12px;align-items:center;margin:10px 0}
+.ajf>label{font-size:14px}
+.ajf .nota{grid-column:2;font-size:12px;color:var(--mut);margin-top:-2px}
+.seg{display:flex;gap:2px}
+.seg button{flex:1;border-radius:0;padding:10px 6px;font-size:14px}
+.seg button:first-child{border-radius:3px 0 0 3px}.seg button:last-child{border-radius:0 3px 3px 0}
+.seg button.on{background:var(--acc);color:var(--accfg)}
+@media (max-width:560px){.ajf{grid-template-columns:1fr}.ajf .nota{grid-column:1}}
 main{max-width:900px;margin:0 auto;padding:12px 16px 40px}
 
 /* Controles */
@@ -132,6 +144,7 @@ html.panel .paleta button{min-height:70px;font-size:14px}
   <button data-t="datos">Datos</button>
   <button data-t="res">Resultados</button>
   <button data-t="arch">Archivo</button>
+  <button id="bAjustes" data-t="aj" title="Ajustes">⚙</button>
   <button id="bDividir" title="Pantalla dividida: dos tomas a la vez">⧉</button>
 </nav>
 <main>
@@ -207,6 +220,28 @@ html.panel .paleta button{min-height:70px;font-size:14px}
   <p class="mut" style="font-size:12px;margin:0 0 6px">Un archivo .json con todas las tomas guardadas, la toma abierta y las plantillas. Restaurar agrega lo que falta; no borra nada de este dispositivo.</p>
   <div class="fila"><button id="bResp">Respaldo completo</button><button id="bRest">Restaurar respaldo</button></div>
   <input type="file" id="fRest" accept=".json,application/json" hidden>
+</section>
+
+<section id="v-aj" hidden>
+  <h2>Pantalla</h2>
+  <div class="ajf"><label>Tema</label><div class="seg" data-k="tema"><button data-v="auto">Automático</button><button data-v="light">Claro</button><button data-v="dark">Oscuro</button></div>
+    <div class="nota">Automático sigue el modo claro/oscuro del dispositivo.</div></div>
+  <div class="ajf"><label>Tamaño de texto</label><div class="seg" data-k="texto"><button data-v="100">Normal</button><button data-v="115">Grande</button><button data-v="130">Muy grande</button></div></div>
+  <div class="ajf"><label>Pantalla encendida</label><div class="seg" data-k="pantalla"><button data-v="toma">Durante la toma</button><button data-v="siempre">Siempre</button><button data-v="nunca">Nunca</button></div>
+    <div class="nota">Con la pantalla dividida queda encendida mientras esté dividida (salvo "Nunca").</div></div>
+  <h2>Al cortar</h2>
+  <div class="ajf"><label>Vibración</label><div class="seg" data-k="vibrar"><button data-v="true">Sí</button><button data-v="false">No</button></div></div>
+  <div class="ajf"><label>Sonido</label><div class="seg" data-k="sonido"><button data-v="true">Sí</button><button data-v="false">No</button></div>
+    <div class="nota">Un pitido corto en cada corte (útil si no mirás la pantalla).</div></div>
+  <h2>Tomas nuevas</h2>
+  <div class="ajf"><label>Observador</label><input id="ajObs" placeholder="Nombre que se carga solo en cada toma nueva"></div>
+  <div class="ajf"><label>Precisión de N'</label><div class="seg" data-k="prec"><button data-v="5">± 5 %</button><button data-v="10">± 10 %</button></div></div>
+  <div class="ajf"><label>Encadenar observaciones</label><div class="seg" data-k="encadenar"><button data-v="true">Sí</button><button data-v="false">No</button></div></div>
+  <h2>Resultados y CSV</h2>
+  <div class="ajf"><label>Unidad de tiempo</label><div class="seg" data-k="unidad"><button data-v="s">Segundos</button><button data-v="min">Minutos</button><button data-v="cmin">Cent. de minuto</button></div>
+    <div class="nota">Centésimas de minuto: 1 min = 100 cmin (1 cmin = 0,6 s). La lectura del cronómetro sigue en min:s.</div></div>
+  <div class="ajf"><label>Formato del CSV</label><div class="seg" data-k="csv"><button data-v="excel">Excel (; y coma)</button><button data-v="std">Estándar (, y punto)</button></div>
+    <div class="nota">Excel en español abre directo el primero. El estándar es más cómodo para leer con Python.</div></div>
   <h2>Versión</h2>
   <div class="fila"><button id="bActualizar">Buscar actualización</button></div>
   <p class="mut" style="font-size:12px;margin:4px 0" id="autoTxt"></p>
@@ -217,7 +252,7 @@ html.panel .paleta button{min-height:70px;font-size:14px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.5.0';
+const VERSION='1.6.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 /* Pantalla dividida: el documento principal muestra dos iframes de esta misma página (#panel=A y #panel=B).
@@ -240,12 +275,26 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 const VAL={'':'','L':'Lento','N':'Normal','R':'Rápido'};
 const CAB=[['estudio','Estudio'],['maquina','Máquina / puesto'],['producto','Producto / PN'],['operario','Operario'],['observador','Observador'],['turno','Turno'],['fecha','Fecha']];
 
+/* ---------- Ajustes (compartidos por todas las pantallas y paneles) ---------- */
+const AJ_DEF={tema:'auto',texto:100,pantalla:'toma',vibrar:true,sonido:false,observador:'',prec:5,encadenar:true,unidad:'s',csv:'excel'};
+function leerAj(){return Object.assign({},AJ_DEF,lsGet('tt_ajustes',{}))}
+let A=leerAj();
+const UNID={s:{f:1,d:2,t:'s'},min:{f:1/60,d:4,t:'min'},cmin:{f:100/60,d:2,t:'cmin'}};
+const UN=()=>UNID[A.unidad]||UNID.s;
+/* Tiempo en segundos -> texto en la unidad elegida */
+function fU(seg){const u=UN();return (seg*u.f).toFixed(u.d)}
+function aplicarAj(){const h=document.documentElement;
+  if(A.tema==='auto')h.removeAttribute('data-theme');else h.dataset.theme=A.tema;
+  document.body.style.zoom=A.texto/100}
+function guardarAj(){lsSet('tt_ajustes',A);aplicarAj()}
+window.addEventListener('storage',e=>{if(e.key==='tt_ajustes'){A=leerAj();aplicarAj();render()}});   // los otros paneles se enteran
+
 function nuevaToma(){return{id:Date.now(),modo:'sec',
   cab:{estudio:'',maquina:'',producto:'',operario:'',observador:'',turno:'',fecha:hoy()},
-  elementos:['Elemento 1'],cortes:[],pausas:[],notas:{},prec:5,
-  rt:{estado:'idle',ciclo:1,el:0,elIni:0,pausaAcc:0,pausaIni:0,encadenar:true,tomaIni:0,excl:0,finTs:0}}}
+  elementos:['Elemento 1'],cortes:[],pausas:[],notas:{},prec:A.prec,
+  rt:{estado:'idle',ciclo:1,el:0,elIni:0,pausaAcc:0,pausaIni:0,encadenar:A.encadenar,tomaIni:0,excl:0,finTs:0}}}
 
-let T=lsGet(LS_CUR,null)||nuevaToma();
+let T=lsGet(LS_CUR,null)||(()=>{const t=nuevaToma();t.cab.observador=A.observador;return t})();
 function migrar(t){const r=t.rt;if(r.tomaIni==null)r.tomaIni=t.cortes.length?t.cortes[0].ini:0;
   if(r.excl==null)r.excl=0;if(r.finTs==null)r.finTs=0;if(t.prec==null)t.prec=5;if(!t.modo)t.modo='sec';return t}
 migrar(T);
@@ -268,8 +317,8 @@ function borrarEl(i){T.elementos.splice(i,1);
   T.cortes.forEach(c=>c.el=m(c.el));T.pausas.forEach(p=>p.el=m(p.el))}
 /* ---------- Pantalla siempre encendida ---------- */
 let wl=null;
-function soltarWL(){if(PANEL)return;if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
-async function pedirWL(){if(PANEL)return;if(AND){try{AND.pantalla(true)}catch(e){}return}
+function soltarWL(){if(PANEL||A.pantalla==='siempre')return;if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
+async function pedirWL(){if(PANEL||A.pantalla==='nunca')return;if(AND){try{AND.pantalla(true)}catch(e){}return}
   try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(T.rt.estado!=='idle'||divEl))pedirWL()});
 
@@ -299,7 +348,7 @@ function corte(elL,ts){const r=T.rt;if(r.estado!=='running')return;const now=ts|
   T.cortes.push({ciclo:r.ciclo,el,ini:r.elIni,fin:now,ms:now-r.elIni-r.pausaAcc,pausaMs:r.pausaAcc,lect:now-r.tomaIni-r.excl,cIni:r.tomaIni,cExcl:r.excl,val:'',det:''});
   r.pausaAcc=0;r.elIni=now;
   if(!LIBRE()){r.el++;if(r.el>=T.elementos.length)cerrarObs(now)}
-  vib(35);
+  vib(35);pitido();
   guardar();render()}
 
 /* Modo libre, "+ Nueva": el corte queda en el instante del toque; después se pide el nombre */
@@ -355,9 +404,13 @@ document.addEventListener('keydown',e=>{if(tab!=='toma'||/INPUT|SELECT|TEXTAREA/
   else if(LIBRE()&&/^[1-9]$/.test(e.key)){const i=+e.key-1;if(i<T.elementos.length)corte(i)}
   else if(LIBRE()&&(e.key==='n'||e.key==='N')){e.preventDefault();corteNueva()}
   else if(LIBRE()&&(e.key==='f'||e.key==='F'))finObs()});
+let actx=null;
+function pitido(){if(!A.sonido)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=1500;g.gain.value=.12;
+  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+.06)}catch(e){}}
 /* Botonera: mantener apretado ~0,45 s y arrastrar sobre otro botón para reordenar. Una pulsación larga nunca corta. */
 const arr={t:null,el:null,x:0,y:0,activo:false,supr:0,dest:null};
-function vib(ms){try{if(AND)AND.vibrar(ms);else if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+function vib(ms){if(!A.vibrar)return;try{if(AND)AND.vibrar(ms);else if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 function arrIni(e,b){if(e.button>0)return;arr.el=b;arr.x=e.clientX;arr.y=e.clientY;arr.activo=false;arr.dest=null;
   clearTimeout(arr.t);
   arr.t=setTimeout(()=>{if(arr.el!==b)return;arr.activo=true;b.classList.add('arrastrando');document.body.classList.add('arrastre');vib(25)},450);
@@ -418,9 +471,9 @@ function renderToma(){const r=T.rt,N=T.elementos.length,L=LIBRE(),act=r.estado==
   $('#pausaBox').hidden=r.estado!=='paused';
   $('#cEnc').checked=r.encadenar;
   const u=T.cortes[T.cortes.length-1];$('#ultBox').hidden=!u;
-  if(u){$('#ultTxt').textContent='Último corte: O'+u.ciclo+' · '+nomEl(T,u)+(L&&u.el!=null?' #'+repDe(T,u):'')+' · '+(u.ms/1000).toFixed(2)+' s';
+  if(u){$('#ultTxt').textContent='Último corte: O'+u.ciclo+' · '+nomEl(T,u)+(L&&u.el!=null?' #'+repDe(T,u):'')+' · '+fU(u.ms/1000)+' '+UN().t;
     if(document.activeElement!==$('#ultDet'))$('#ultDet').value=u.det||''}
-  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'O'+c.ciclo+' · '+esc(nomEl(T,c))+(L&&c.el!=null?' #'+repDe(T,c):'')+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+(c.ms/1000).toFixed(2)+' s'+(c.pausaMs?' (p)':'')+(c.det?' — '+esc(c.det):'')).join('<br>');
+  $('#tUlt').innerHTML=T.cortes.slice(-6).reverse().map(c=>'O'+c.ciclo+' · '+esc(nomEl(T,c))+(L&&c.el!=null?' #'+repDe(T,c):'')+' · L '+(c.lect!=null?fmtE(c.lect):'—')+' · t '+fU(c.ms/1000)+' '+UN().t+(c.pausaMs?' (p)':'')+(c.det?' — '+esc(c.det):'')).join('<br>');
   const ev=evalObs();
   $('#tNec').textContent=ev?('Mediciones (mín.): '+ev.n+' · Necesarias (±'+T.prec+' %, 95 %): '+ev.max+(ev.max>ev.n?' · faltan '+(ev.max-ev.n)+' ('+ev.crit+')':' · OK')):'Observaciones necesarias: se calcula desde 2 mediciones';
   tick()}
@@ -475,7 +528,7 @@ function evalObs(){let max=0,crit='',n=Infinity;
 function celdasN(v,th){const r=nNec(v),tg=th?'th':'td';
   if(r==null)return '<'+tg+' class="mut">—</'+tg+'><'+tg+'></'+tg+'>';
   return '<'+tg+'>'+r+'</'+tg+'><'+tg+'>'+(v.length>=r?'OK':'<span style="color:var(--warn)">faltan '+(r-v.length)+'</span>')+'</'+tg+'>'}
-const f2=x=>x.toFixed(2);
+const f2=x=>fU(x);   // tiempos en la unidad elegida en Ajustes
 function est(v){return {n:v.length,m:v.reduce((a,b)=>a+b,0)/v.length,mi:Math.min(...v),ma:Math.max(...v)}}
 function selVal(k,v){return '<select data-v="'+k+'">'+Object.keys(VAL).map(o=>'<option value="'+o+'"'+(v===o?' selected':'')+'>'+(o||'·')+'</option>').join('')+'</select>'}
 
@@ -506,7 +559,7 @@ function tablaLibre(C){const cerr=C.filter(c=>c<T.rt.ciclo),nc=cerr.length;
       (e==null?'<td></td><td></td>':celdasN(v))+'</tr>'});
   h+='</table>';
   const tc=[];
-  let t2='<table style="margin-top:10px"><tr><th>Total observación</th>'+C.map(c=>'<th>O'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>N\'</th><th>Estado</th></tr><tr><td>Tiempo [s]</td>';
+  let t2='<table style="margin-top:10px"><tr><th>Total observación</th>'+C.map(c=>'<th>O'+c+'</th>').join('')+'<th>n</th><th>Media</th><th>N\'</th><th>Estado</th></tr><tr><td>Tiempo ['+UN().t+']</td>';
   C.forEach(c=>{const t=T.cortes.filter(x=>x.ciclo===c).reduce((a,x)=>a+x.ms,0)/1000,ok=cerr.includes(c);if(ok)tc.push(t);t2+='<td>'+f2(t)+(ok?'':'*')+'</td>'});
   t2+='<td>'+tc.length+'</td><td>'+(tc.length?f2(tc.reduce((a,b)=>a+b,0)/tc.length):'—')+'</td>'+celdasN(tc)+'</tr></table>';
   return h+t2+'<p class="mut" style="font-size:12px;padding:0 8px">* observación en curso (no entra en Veces/obs, Total/obs ni en el total)</p>'}
@@ -514,7 +567,7 @@ function tablaLibre(C){const cerr=C.filter(c=>c<T.rt.ciclo),nc=cerr.length;
 /* Ambos modos: lista cronológica de cortes, con valoración y detalle editables */
 function tablaDetalle(){const L=LIBRE();
   const opts=sel=>'<option value=""'+(sel==null?' selected':'')+'>(sin nombre)</option>'+T.elementos.map((n,i)=>'<option value="'+i+'"'+(sel===i?' selected':'')+'>'+esc(n)+'</option>').join('');
-  let h='<table><tr><th>Obs</th><th>#</th><th style="text-align:left">'+(L?'Actividad':'Elemento')+'</th>'+(L?'<th>Rep</th>':'')+'<th>Lectura</th><th>t [s]</th><th>Val.</th><th style="text-align:left">Detalle</th></tr>';
+  let h='<table><tr><th>Obs</th><th>#</th><th style="text-align:left">'+(L?'Actividad':'Elemento')+'</th>'+(L?'<th>Rep</th>':'')+'<th>Lectura</th><th>t ['+UN().t+']</th><th>Val.</th><th style="text-align:left">Detalle</th></tr>';
   let prev=null,ord=0;
   ordenados(T).forEach(({c,k})=>{if(c.ciclo!==prev){prev=c.ciclo;ord=0}ord++;
     h+='<tr><td>O'+c.ciclo+'</td><td>'+ord+'</td><td style="text-align:left">'+(L?'<select data-a="'+k+'">'+opts(c.el)+'</select>':esc(nomEl(T,c)))+'</td>'+
@@ -524,7 +577,7 @@ function tablaDetalle(){const L=LIBRE();
 
 function renderRes(){const C=ciclos(),L=LIBRE();
   $('#selPrec').value=String(T.prec);
-  $('#resTit').textContent=L?'Resumen por actividad [s]':'Tiempos por elemento [s]';
+  $('#resTit').textContent=(L?'Resumen por actividad':'Tiempos por elemento')+' ['+UN().t+']';
   $('#resNota').textContent=L?'n = mediciones de la actividad (todas sus repeticiones, en todas las observaciones). Veces/obs y Total/obs: promedio sobre las observaciones cerradas.':'';
   if(!C.length){$('#tabla').innerHTML='<p class="mut" style="padding:10px">Todavía no hay cortes.</p>';$('#notas').innerHTML='';$('#detalle').innerHTML='';return}
   $('#tabla').innerHTML=L?tablaLibre(C):tablaSec(C);
@@ -537,15 +590,16 @@ function renderRes(){const C=ciclos(),L=LIBRE();
 $('#selPrec').onchange=e=>{T.prec=+e.target.value;guardar();renderRes()};
 
 /* ---------- Archivo / CSV ---------- */
-function aCSV(t){const q=s=>{s=String(s??'');return /[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
-  const n=x=>x.toFixed(2).replace('.',',');
-  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Modo','Observacion','Orden','Elemento','Rep','Inicio','Fin','Lectura_s','Tiempo_s','Pausa_s','Valoracion','Detalle','Motivo_pausa','Nota'];
+function aCSV(t){const XL=A.csv!=='std',SEP=XL?';':',',u=UN();
+  const q=s=>{s=String(s??'');return (s.includes(SEP)||/["\n\r]/.test(s))?'"'+s.replace(/"/g,'""')+'"':s};
+  const n=seg=>{const v=fU(seg);return XL?v.replace('.',','):v};
+  const head=['Estudio','Maquina','Producto','Operario','Observador','Turno','Fecha','Modo','Observacion','Orden','Elemento','Rep','Inicio','Fin','Lectura_'+u.t,'Tiempo_'+u.t,'Pausa_'+u.t,'Valoracion','Detalle','Motivo_pausa','Nota'];
   let prev=null,ord=0;
   const rows=ordenados(t).map(({c})=>{if(c.ciclo!==prev){prev=c.ciclo;ord=0}ord++;return [
     t.cab.estudio,t.cab.maquina,t.cab.producto,t.cab.operario,t.cab.observador,t.cab.turno,t.cab.fecha,t.modo==='libre'?'Libre':'Secuencial',
     c.ciclo,ord,nomEl(t,c),repDe(t,c),fmtH(c.ini),fmtH(c.fin),c.lect!=null?n(c.lect/1000):'',n(c.ms/1000),n(c.pausaMs/1000),VAL[c.val]||'',c.det||'',
-    t.pausas.filter(p=>p.ciclo===c.ciclo&&p.ini>=c.ini&&p.ini<=c.fin).map(p=>p.motivo||'s/motivo').join(' | '),t.notas[c.ciclo]||''].map(q).join(';')});
-  return [head.join(';'),...rows].join('\r\n')}
+    t.pausas.filter(p=>p.ciclo===c.ciclo&&p.ini>=c.ini&&p.ini<=c.fin).map(p=>p.motivo||'s/motivo').join(' | '),t.notas[c.ciclo]||''].map(q).join(SEP)});
+  return [head.join(SEP),...rows].join('\r\n')}
 function nombreArch(t){const s=x=>String(x||'').trim().replace(/[^\w\-]+/g,'_');
   const d=new Date(t.id);return 'toma_'+(s(t.cab.maquina)||'sin_maquina')+'_'+(t.cab.fecha||hoy())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.csv'}
 function descargar(nombre,txt,mime){mime=mime||'text/csv';
@@ -603,7 +657,7 @@ $('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' ·
 function empezarToma(repetir){if(T.rt.estado!=='idle'){toast('Finalizá la toma actual primero');return}
   if(T.cortes.length&&!confirm('La toma actual se guarda en el historial. ¿Empezar '+(repetir?'la repetición':'una nueva')+'?'))return;
   if(T.cortes.length)guardarHist();const el=T.elementos.slice(),cab=Object.assign({},T.cab),modo=T.modo;
-  T=nuevaToma();T.modo=modo;T.cab.observador=cab.observador;
+  T=nuevaToma();T.modo=modo;T.cab.observador=A.observador||cab.observador;
   if(repetir){T.elementos=el;['estudio','maquina','producto','turno'].forEach(k=>T.cab[k]=cab[k])}
   else T.elementos=modo==='libre'?[]:['Elemento 1'];
   guardar();go('datos');toast(repetir?'Repetición: se copió el encabezado y el desglose':'Nueva toma en blanco')}
@@ -624,8 +678,19 @@ function renderArch(){const h=lsGet(LS_HIST,[]);
 /* ---------- Navegación ---------- */
 let tab='toma';
 function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['toma','datos','res','arch'].forEach(k=>$('#v-'+k).hidden=k!==t);render()}
-function render(){({toma:renderToma,datos:renderDatos,res:renderRes,arch:renderArch})[tab]()}
+  ['toma','datos','res','arch','aj'].forEach(k=>$('#v-'+k).hidden=k!==t);render()}
+function render(){({toma:renderToma,datos:renderDatos,res:renderRes,arch:renderArch,aj:renderAj})[tab]()}
+function renderAj(){
+  document.querySelectorAll('#v-aj .seg').forEach(g=>g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(A[g.dataset.k])===b.dataset.v)));
+  if(document.activeElement!==$('#ajObs'))$('#ajObs').value=A.observador}
+document.querySelectorAll('#v-aj .seg').forEach(g=>g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.v;A[g.dataset.k]=v==='true'?true:v==='false'?false:/^\d+$/.test(v)?+v:v;guardarAj();
+  if(g.dataset.k==='pantalla'){if(A.pantalla==='siempre')pedirWL();else if(A.pantalla==='nunca'||T.rt.estado==='idle')soltarWL()}
+  if(g.dataset.k==='sonido'&&A.sonido)pitido();
+  renderAj()}));
+$('#ajObs').oninput=e=>{A.observador=e.target.value;guardarAj()};
+aplicarAj();
+if(A.pantalla==='siempre')pedirWL();
 document.querySelectorAll('nav button[data-t]').forEach(b=>b.onclick=()=>go(b.dataset.t));
 go(T.cortes.length||T.rt.estado!=='idle'?'toma':'datos');
 
