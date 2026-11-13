@@ -1,0 +1,15 @@
+{
+  "name": "Toma de Tiempos",
+  "short_name": "Tiempos",
+  "start_url": "./toma_tiempos.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eceeef",
+  "theme_color": "#1b2a38",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

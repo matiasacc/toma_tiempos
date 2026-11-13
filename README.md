@@ -42,6 +42,17 @@ En horizontal quedan lado a lado; en vertical, uno arriba del otro.
 - Con la pantalla dividida, la pantalla queda encendida todo el tiempo.
 - Si la app se cierra dividida, vuelve dividida y cada panel sigue donde estaba.
 
+## iPhone / iPad (web app)
+
+La misma página se publica en **https://matiasacc.github.io/toma_tiempos/** (workflow `pages.yml`, en cada push que cambie `web/`).
+Requiere una sola vez: *Settings → Pages → Source: GitHub Actions*.
+
+Instalar: abrir la dirección en **Safari** → *Compartir* → **Agregar a pantalla de inicio**. Queda como una app a pantalla completa.
+
+- Funciona sin conexión (service worker); con conexión carga siempre la última versión publicada.
+- Los datos quedan en el dispositivo. No hay respaldo automático: la app recuerda hacer *Respaldo completo* si pasan más de 7 días.
+- Abrirla siempre desde el ícono de la pantalla de inicio (Safari y el ícono guardan datos por separado).
+
 ## Estructura
 
 ```

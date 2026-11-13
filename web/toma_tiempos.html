@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Toma de Tiempos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tiempos">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1b2a38">
 <style>
-/* Paleta sobria: grafito + un solo acento ámbar. Sin redondeos grandes ni tarjetas. */
-:root{--bg:#e9e8e3;--fg:#17191b;--mut:#5f625d;--line:#c9c7bf;--card:#f6f5f1;--btn:#dad8d0;--acc:#1c1f22;--accfg:#f2f1ec;
-  --amb:#d4891a;--ambfg:#141516;--warn:#a35a06;--disp:#141618;--dispfg:#f1f0eb;--dispmut:#8d908a}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1011;--fg:#e6e5e0;--mut:#8c8f8a;--line:#2d3034;--card:#17191b;--btn:#25282c;--acc:#25292d;--accfg:#e9e8e3;
-  --amb:#e09a2c;--ambfg:#121314;--warn:#e3a243;--disp:#000;--dispfg:#f1f0eb;--dispmut:#7b7e79}}
+/* Paleta sobria: azul pizarra + un solo acento celeste (--amb = acento). Sin redondeos grandes ni tarjetas. */
+:root{--bg:#eceeef;--fg:#16202a;--mut:#5a6570;--line:#c6cdd3;--card:#f8f9fa;--btn:#d9dfe4;--acc:#1b2a38;--accfg:#eef3f7;
+  --amb:#2f86cf;--ambfg:#ffffff;--warn:#a35a06;--disp:#121b24;--dispfg:#eef3f7;--dispmut:#8796a4}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1217;--fg:#e3e9ee;--mut:#8593a0;--line:#26323d;--card:#141b22;--btn:#212c37;--acc:#18232e;--accfg:#e3e9ee;
+  --amb:#4aa3e6;--ambfg:#0b1117;--warn:#e3a243;--disp:#070b0f;--dispfg:#eef3f7;--dispmut:#71808d}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
@@ -45,7 +53,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)
 /* Toma: visor tipo instrumento */
 .visor{background:var(--disp);color:var(--dispfg);border-radius:3px;padding:11px 14px 10px}
 .estado{color:var(--dispmut);font-size:12px;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
-.estado::before{content:"";width:9px;height:9px;border-radius:50%;background:#4a4d50;flex:0 0 auto}
+.estado::before{content:"";width:9px;height:9px;border-radius:50%;background:#3d4b58;flex:0 0 auto}
 .visor[data-e=running] .estado::before{background:var(--amb)}
 .visor[data-e=paused] .estado::before{background:var(--amb);animation:parpadeo 1s steps(1) infinite}
 @keyframes parpadeo{50%{opacity:.15}}
@@ -209,7 +217,7 @@ html.panel .paleta button{min-height:70px;font-size:14px}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.4.0';
+const VERSION='1.5.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 /* Pantalla dividida: el documento principal muestra dos iframes de esta misma página (#panel=A y #panel=B).
@@ -566,7 +574,7 @@ function respaldoAuto(){if(!AUTO_OK)return;clearTimeout(rAutoT);
   rAutoT=setTimeout(()=>{try{const r=AND.guardarRespaldoAuto('respaldo_auto_'+hoy()+'.json',JSON.stringify(armarRespaldo()));
     if(r)lsSet('tt_auto_ult',{ts:Date.now(),ruta:r})}catch(e){}},400)}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')respaldoAuto()});
-$('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();
+$('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();lsSet('tt_resp_ult',Date.now());
   const r=armarRespaldo();
   const d=new Date();
   descargar('respaldo_toma_tiempos_'+hoy()+'_'+pad(d.getHours())+pad(d.getMinutes())+'.json',JSON.stringify(r),'application/json');renderArch()};
@@ -625,7 +633,8 @@ go(T.cortes.length||T.rt.estado!=='idle'?'toma':'datos');
 const REPO='matiasacc/toma_tiempos';
 function cmpVer(a,b){const x=a.split('.').map(Number),y=b.split('.').map(Number);
   for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0}
-let urlNueva='';
+let urlNueva='',avisoFn=null;
+function mostrarAviso(txt,boton,fn){$('#avisoTxt').textContent=txt;$('#bAvisoDesc').textContent=boton;avisoFn=fn;$('#aviso').hidden=false}
 async function buscarActualizacion(manual){
   try{const r=await fetch('https://api.github.com/repos/'+REPO+'/releases/latest',{cache:'no-store'});
     lsSet('tt_upd_ult',Date.now());
@@ -634,16 +643,29 @@ async function buscarActualizacion(manual){
     if(!v||cmpVer(v,VERSION)<=0){if(manual)toast('Ya tenés la última versión ('+VERSION+')');return}
     const a=(j.assets||[]).find(x=>x.name.endsWith(AND?'.apk':'.html'));
     urlNueva=a?a.browser_download_url:j.html_url;
-    $('#avisoTxt').textContent='Versión '+v+' disponible (tenés '+VERSION+')';$('#aviso').hidden=false}
+    mostrarAviso('Versión '+v+' disponible (tenés '+VERSION+')','Descargar',descargarNueva)}
   catch(e){if(manual)toast('Sin conexión')}}
-$('#bAvisoDesc').onclick=()=>{if(!urlNueva)return;
+function descargarNueva(){if(!urlNueva)return;
   if(AND&&typeof AND.abrirUrl==='function'){try{AND.abrirUrl(urlNueva)}catch(e){}}else window.open(urlNueva,'_blank');
-  toast(AND?'Al terminar la descarga, abrila e instalala encima (no desinstales)':'Descargando…')};
+  toast(AND?'Al terminar la descarga, abrila e instalala encima (no desinstales)':'Descargando…');$('#aviso').hidden=true}
+$('#bAvisoDesc').onclick=()=>{if(avisoFn)avisoFn()};
 $('#bAvisoX').onclick=()=>{$('#aviso').hidden=true};
 $('#bActualizar').onclick=()=>buscarActualizacion(true);
-if(!PANEL&&Date.now()-(lsGet('tt_upd_ult',0)||0)>6*3600e3)setTimeout(()=>buscarActualizacion(false),1500);
+const ES_WEB=(location.protocol==='https:'||location.hostname==='localhost')&&!AND;   // localhost: para probar
+if(!PANEL&&!ES_WEB&&Date.now()-(lsGet('tt_upd_ult',0)||0)>6*3600e3)setTimeout(()=>buscarActualizacion(false),1500);
+$('#bActualizar').hidden=ES_WEB;
 (()=>{const u=lsGet('tt_auto_ult',null);
-  $('#autoTxt').textContent=AUTO_OK?('Respaldo automático: Descargas/TomaTiempos'+(u?' · último '+new Date(u.ts).toLocaleString():'')):'Respaldo automático: solo en la app Android. En el navegador, usar "Respaldo completo".'})();
+  $('#autoTxt').textContent=AUTO_OK?('Respaldo automático: Descargas/TomaTiempos'+(u?' · último '+new Date(u.ts).toLocaleString():''))
+    :(ES_WEB?'Versión web: se actualiza sola al abrirla con conexión. No hay respaldo automático: hacer "Respaldo completo" seguido.'
+      :'Respaldo automático: solo en la app Android. En el navegador, usar "Respaldo completo".')})();
+
+/* Web (iOS / navegador): funciona sin conexión, pide almacenamiento persistente y recuerda respaldar */
+if(ES_WEB&&!PANEL){
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+}
+if(!AUTO_OK&&!PANEL&&lsGet(LS_HIST,[]).length&&Date.now()-(lsGet('tt_resp_ult',0)||0)>7*864e5)
+  setTimeout(()=>{if($('#aviso').hidden)mostrarAviso('Hace más de 7 días que no hacés un respaldo','Hacer respaldo',()=>{$('#aviso').hidden=true;$('#bResp').click()})},2500);
 
 /* ---------- Pantalla dividida ---------- */
 let divEl=null;
