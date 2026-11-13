@@ -2,8 +2,8 @@
 <resources>
     <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:colorPrimary">@color/acento</item>
-        <item name="android:colorAccent">#3F73A3</item>
-        <item name="android:statusBarColor">#151515</item>
-        <item name="android:windowBackground">#151515</item>
+        <item name="android:colorAccent">#E09A2C</item>
+        <item name="android:statusBarColor">#0F1011</item>
+        <item name="android:windowBackground">#0F1011</item>
     </style>
 </resources>

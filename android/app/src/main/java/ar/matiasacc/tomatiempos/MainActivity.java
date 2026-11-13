@@ -6,6 +6,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -166,6 +167,67 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "";
             }
+        }
+
+        /**
+         * Respaldo automático: escribe (o reescribe) Descargas/TomaTiempos/<nombre>.
+         * Está fuera de los datos de la app, así que sobrevive a desinstalar o "Borrar datos".
+         * Si el archivo existe y es de esta instalación, se sobrescribe; si no, se crea uno nuevo.
+         */
+        @JavascriptInterface
+        public String guardarRespaldoAuto(String nombre, String contenido) {
+            byte[] datos = contenido.getBytes(StandardCharsets.UTF_8);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentResolver cr = getContentResolver();
+                    String rel = Environment.DIRECTORY_DOWNLOADS + "/" + SUBCARPETA + "/";
+                    Uri existente = null;
+                    try (Cursor c = cr.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                            new String[]{MediaStore.MediaColumns._ID},
+                            MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                            new String[]{nombre, rel}, null)) {
+                        if (c != null && c.moveToFirst()) {
+                            existente = Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, String.valueOf(c.getLong(0)));
+                        }
+                    }
+                    if (existente != null) {
+                        try (OutputStream os = cr.openOutputStream(existente, "wt")) {
+                            if (os != null) {
+                                os.write(datos);
+                                return "Descargas/" + SUBCARPETA + "/" + nombre;
+                            }
+                        } catch (Exception ignored) {
+                            // no es de esta instalación: se crea uno nuevo abajo
+                        }
+                    }
+                    return guardarArchivo(nombre, contenido, "application/json");
+                } else {
+                    File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), SUBCARPETA);
+                    if (!dir.exists() && !dir.mkdirs()) return "";
+                    File f = new File(dir, nombre);
+                    try (FileOutputStream fos = new FileOutputStream(f, false)) {
+                        fos.write(datos);
+                    }
+                    return f.getAbsolutePath();
+                }
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        /** Abre un enlace https en el navegador del sistema (descarga de una versión nueva). */
+        @JavascriptInterface
+        public void abrirUrl(String url) {
+            if (url == null || !url.startsWith("https://")) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "No se pudo abrir el enlace", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         /** Abre el menú de compartir de Android (mail, Drive, WhatsApp, etc.) con el CSV. */

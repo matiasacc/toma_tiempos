@@ -20,6 +20,18 @@ En ambos modos, cada corte admite un **detalle** (texto libre; se puede dictar c
 
 Teclado (notebook): Espacio/Enter = corte · P = pausa · Ctrl+Z = deshacer · en modo libre: 1–9 = actividad, N = nueva, F = fin de observación.
 
+En modo libre las actividades se pueden borrar y reordenar aunque ya tengan cortes (los cortes de una actividad borrada quedan "sin nombre"). En la botonera, **mantener apretado un botón y arrastrarlo** sobre otro cambia el orden; una pulsación larga nunca registra un corte.
+
+## Datos y respaldo
+
+- Las tomas se guardan dentro de la app. **Desinstalar o "Borrar datos" las elimina.**
+- **Respaldo automático (app Android):** al cerrar cada observación, finalizar, guardar o salir de la app se reescribe `Descargas/TomaTiempos/respaldo_auto_AAAA-MM-DD.json` (uno por día). Está fuera de la app: sobrevive a una desinstalación y se recupera con *Archivo → Restaurar respaldo*.
+
+## Actualizaciones
+
+Al abrir, la app consulta la última release (`api.github.com/repos/matiasacc/toma_tiempos/releases/latest`) y, si hay una versión nueva, muestra un aviso con *Descargar*. La APK se instala **encima** de la anterior (misma firma): no hace falta desinstalar.
+Requiere que las releases sean accesibles sin credenciales (repositorio público); con el repositorio privado la consulta devuelve 404 y no se muestra nada.
+
 ## Pantalla dividida
 
 El botón **⧉** divide la pantalla en dos paneles (A y B), cada uno con una toma independiente: sirve para tomar dos puestos a la vez.

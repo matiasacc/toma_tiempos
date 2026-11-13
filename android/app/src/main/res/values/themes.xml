@@ -2,7 +2,7 @@
 <resources>
     <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:colorPrimary">@color/acento</item>
-        <item name="android:colorAccent">@color/acento</item>
+        <item name="android:colorAccent">#D4891A</item>
         <item name="android:statusBarColor">@color/acento</item>
         <item name="android:windowBackground">@color/fondo</item>
     </style>

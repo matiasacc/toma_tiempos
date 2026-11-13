@@ -5,84 +5,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Toma de Tiempos</title>
 <style>
-:root{--bg:#f3f3f1;--fg:#1c1c1c;--mut:#6a6a66;--line:#cbcbc6;--card:#fff;--acc:#1f4e79;--accfg:#fff;--warn:#8a5a00;--bad:#8b1e1e}
-@media (prefers-color-scheme:dark){:root{--bg:#151515;--fg:#e6e6e3;--mut:#9a9a95;--line:#3a3a37;--card:#1f1f1f;--acc:#3f73a3;--accfg:#fff;--warn:#d09a3a;--bad:#d06464}}
+/* Paleta sobria: grafito + un solo acento ámbar. Sin redondeos grandes ni tarjetas. */
+:root{--bg:#e9e8e3;--fg:#17191b;--mut:#5f625d;--line:#c9c7bf;--card:#f6f5f1;--btn:#dad8d0;--acc:#1c1f22;--accfg:#f2f1ec;
+  --amb:#d4891a;--ambfg:#141516;--warn:#a35a06;--disp:#141618;--dispfg:#f1f0eb;--dispmut:#8d908a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1011;--fg:#e6e5e0;--mut:#8c8f8a;--line:#2d3034;--card:#17191b;--btn:#25282c;--acc:#25292d;--accfg:#e9e8e3;
+  --amb:#e09a2c;--ambfg:#121314;--warn:#e3a243;--disp:#000;--dispfg:#f1f0eb;--dispmut:#7b7e79}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+
+/* Barra superior: pestañas con subrayado */
+nav{display:flex;padding:0 4px;background:var(--acc);position:sticky;top:0;z-index:5}
+nav button{flex:1;padding:14px 4px 11px;background:none;border:0;border-bottom:3px solid transparent;border-radius:0;color:var(--dispmut);
+  font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+nav button.on{color:var(--accfg);border-bottom-color:var(--amb)}
+nav .ptag{flex:0 0 auto;min-width:40px;background:var(--amb);color:var(--ambfg);border-bottom-color:var(--amb);font-size:15px}
+nav .ptag:disabled{opacity:1}
+nav #bDividir{flex:0 0 auto;min-width:48px;font-size:18px;letter-spacing:0;text-transform:none}
+main{max-width:900px;margin:0 auto;padding:12px 16px 40px}
+
+/* Controles */
+button{font:inherit;color:var(--fg);background:var(--btn);border:0;border-radius:3px;padding:11px 12px;cursor:pointer;touch-action:manipulation}
+button:active{filter:brightness(.9)}
+button:disabled{opacity:.38}
+button.pri{background:var(--acc);color:var(--accfg)}
+input,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:2px;padding:8px;width:100%}
+input:focus,select:focus{outline:2px solid var(--amb);outline-offset:-1px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:24px 0 8px;font-weight:700;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.mut{color:var(--mut)}
+.fila{display:flex;gap:6px;margin:8px 0}
+.fila>*{flex:1}
+
+/* Aviso de actualización */
+.aviso{display:flex;align-items:center;gap:8px;background:var(--amb);color:var(--ambfg);padding:8px 10px;margin:0 0 10px;font-weight:600;font-size:14px}
+.aviso span{flex:1}
+.aviso button{background:var(--acc);color:var(--accfg);padding:7px 12px}
+.aviso button+button{background:transparent;color:var(--ambfg);padding:7px 9px}
+
+/* Toma: visor tipo instrumento */
+.visor{background:var(--disp);color:var(--dispfg);border-radius:3px;padding:11px 14px 10px}
+.estado{color:var(--dispmut);font-size:12px;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.estado::before{content:"";width:9px;height:9px;border-radius:50%;background:#4a4d50;flex:0 0 auto}
+.visor[data-e=running] .estado::before{background:var(--amb)}
+.visor[data-e=paused] .estado::before{background:var(--amb);animation:parpadeo 1s steps(1) infinite}
+@keyframes parpadeo{50%{opacity:.15}}
+.elem{font-size:24px;font-weight:600;margin:6px 0 0;min-height:32px}
+.sig{color:var(--dispmut);font-size:13px;min-height:18px}
+.crono{font:300 76px/1 system-ui,-apple-system,Roboto,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:center;margin:12px 0 8px}
+.tot{text-align:center;color:var(--dispmut);font-size:13px;font-variant-numeric:tabular-nums}
+.big{width:100%;height:28vh;min-height:140px;font-size:32px;font-weight:700;letter-spacing:.08em;margin-top:8px;border-radius:3px}
+#bBig.corte{background:var(--amb);color:var(--ambfg)}
+.big.chico{height:auto;min-height:58px;font-size:17px;letter-spacing:.05em}
+.pausabox{border-left:4px solid var(--warn);background:var(--card);color:var(--warn);padding:8px 10px;margin:8px 0}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);margin-top:10px}
+.chk input{width:auto;accent-color:var(--acc)}
+.ult{font:12px/1.55 ui-monospace,"Roboto Mono",Consolas,monospace;color:var(--mut);margin-top:10px}
+
+/* Botonera del modo libre */
+.paleta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:6px}
+.paleta button{min-height:86px;font-size:16px;font-weight:600;white-space:normal;line-height:1.2;text-align:left;padding:10px 12px;
+  background:var(--card);border-left:4px solid var(--acc);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.paleta button .cnt{display:block;margin-top:4px;font-size:12px;font-weight:400;color:var(--mut)}
+.paleta button.nueva{background:transparent;border:1px dashed var(--mut);color:var(--mut);text-align:center}
+.paleta button.off{opacity:.5}
+.paleta button.arrastrando{opacity:.45;outline:2px dashed var(--fg);outline-offset:-2px}
+.paleta button.destino{outline:3px solid var(--amb);outline-offset:-3px}
+body.arrastre{user-select:none;-webkit-user-select:none}
+.ultbox{border-left:4px solid var(--line);padding:8px 10px;margin-top:10px;background:var(--card)}
+.ultbox span{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
+
+/* Datos */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.grid label{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:2px}
+.el{display:flex;gap:5px;margin:5px 0;align-items:center}
+.el span{width:24px;text-align:right;color:var(--mut);font-variant-numeric:tabular-nums}
+.el button{padding:9px 11px}
+.sel.on{background:var(--acc);color:var(--accfg)}
+
+/* Resultados */
+.tw{overflow-x:auto;border-top:2px solid var(--fg);border-bottom:1px solid var(--line);background:var(--card)}
+table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 7px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+th{color:var(--mut);font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+td select{width:auto;padding:2px;font-size:12px}
+td input.det{min-width:200px;padding:4px 6px;font-size:13px}
+.p{color:var(--warn);font-size:11px}
+.lista .it{display:flex;gap:5px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0}
+.lista .it div{flex:1}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--acc);color:var(--accfg);padding:9px 14px;border-radius:2px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:.95}
+
 /* Pantalla dividida (documento principal) */
 body.div-on>nav,body.div-on>main{display:none}
 #dividida{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
-.divbar{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--card);font-size:13px;color:var(--mut)}
+.divbar{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--acc);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dispmut)}
 .divbar span{flex:1}
-.divbar button{padding:6px 14px}
+.divbar button{padding:6px 14px;background:transparent;color:var(--accfg);border:1px solid var(--dispmut);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .divpaneles{flex:1;display:flex;flex-direction:row;min-height:0}
 .divpaneles iframe{flex:1;border:0;min-width:0;min-height:0;width:100%;height:100%;background:var(--bg)}
-.divpaneles iframe+iframe{border-left:3px solid var(--line)}
-@media (orientation:portrait){.divpaneles{flex-direction:column}.divpaneles iframe+iframe{border-left:0;border-top:3px solid var(--line)}}
+.divpaneles iframe+iframe{border-left:4px solid var(--acc)}
+@media (orientation:portrait){.divpaneles{flex-direction:column}.divpaneles iframe+iframe{border-left:0;border-top:4px solid var(--acc)}}
 /* Dentro de un panel: más compacto */
 html.panel main{padding:8px 10px 30px}
-html.panel nav{padding:4px;gap:3px}
-html.panel nav button{padding:8px 2px;font-size:14px}
-html.panel .crono{font-size:46px;margin:6px 0 2px}
-html.panel .elem{font-size:20px;min-height:26px;margin:2px 0}
-html.panel .big{height:20vh;min-height:90px;font-size:26px}
-html.panel .big.chico{height:auto;min-height:54px;font-size:17px}
-html.panel .paleta{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
-html.panel .paleta button{min-height:72px;font-size:15px}
-nav .ptag{flex:0 0 auto;min-width:38px;font-weight:700;background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-nav #bDividir{flex:0 0 auto;min-width:44px}
-nav .ptag:disabled{opacity:1}
-[hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
-nav{display:flex;gap:4px;padding:6px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-nav button{flex:1;padding:10px 4px}
-nav button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-main{max-width:900px;margin:0 auto;padding:12px 16px 40px}
-button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer;touch-action:manipulation}
-button:disabled{opacity:.4}
-button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-input,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:5px;padding:8px;width:100%}
-h2{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:18px 0 8px;font-weight:600}
-.mut{color:var(--mut)}
-.fila{display:flex;gap:8px;margin:10px 0}
-.fila>*{flex:1}
-/* Toma */
-.estado{color:var(--mut);font-size:14px}
-.elem{font-size:26px;font-weight:600;margin:6px 0 2px;min-height:34px}
-.sig{color:var(--mut);font-size:14px;min-height:18px}
-.crono{font:600 64px/1.1 ui-monospace,Consolas,monospace;text-align:center;margin:14px 0 4px;font-variant-numeric:tabular-nums}
-.tot{text-align:center;color:var(--mut);font-variant-numeric:tabular-nums}
-.big{width:100%;height:30vh;min-height:150px;font-size:34px;font-weight:700;margin-top:14px;border-radius:10px}
-.pausabox{border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:8px;margin:8px 0}
-.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mut);margin-top:8px}
-.chk input{width:auto}
-.ult{font:13px ui-monospace,Consolas,monospace;color:var(--mut);margin-top:10px}
-/* Datos */
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.grid label{font-size:13px;color:var(--mut)}
-.el{display:flex;gap:6px;margin:6px 0;align-items:center}
-.el span{width:24px;text-align:right;color:var(--mut)}
-.el button{padding:8px 10px}
-/* Resultados */
-.tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
-table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%}
-th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:right;white-space:nowrap}
-th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
-th{color:var(--mut);font-weight:600}
-td select{width:auto;padding:2px;font-size:12px}
-.p{color:var(--warn);font-size:11px}
-.lista .it{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
-.lista .it div{flex:1}
-.big.chico{height:auto;min-height:60px;font-size:19px;font-weight:600}
-.paleta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
-.paleta button{min-height:88px;font-size:17px;font-weight:600;white-space:normal;line-height:1.2}
-.paleta button .cnt{display:block;font-size:12px;font-weight:400;color:var(--mut)}
-.paleta button.nueva{border-style:dashed;color:var(--mut)}
-.ultbox{border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:10px;background:var(--card)}
-.ultbox span{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
-.sel.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-td input.det{min-width:200px;padding:4px 6px;font-size:13px}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
-.toast.on{opacity:.92}
+html.panel nav button{padding:11px 2px 9px;font-size:12px}
+html.panel .crono{font-size:52px;margin:8px 0 4px}
+html.panel .elem{font-size:19px;min-height:25px}
+html.panel .big{height:19vh;min-height:88px;font-size:26px}
+html.panel .big.chico{height:auto;min-height:52px;font-size:15px}
+html.panel .paleta{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+html.panel .paleta button{min-height:70px;font-size:14px}
 </style>
 </head>
 <body>
@@ -95,14 +127,17 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
   <button id="bDividir" title="Pantalla dividida: dos tomas a la vez">⧉</button>
 </nav>
 <main>
+<div class="aviso" id="aviso" hidden><span id="avisoTxt"></span><button id="bAvisoDesc">Descargar</button><button id="bAvisoX" aria-label="Cerrar">✕</button></div>
 
 <section id="v-toma">
-  <div class="estado" id="tEstado"></div>
-  <div class="elem" id="tElem"></div>
-  <div class="sig" id="tSig"></div>
-  <div class="crono" id="tCrono">0:00.0</div>
-  <div class="tot" id="tTot"></div>
-  <div class="tot" id="tNec" style="font-size:13px;margin-top:4px"></div>
+  <div class="visor" id="visor">
+    <div class="estado" id="tEstado"></div>
+    <div class="elem" id="tElem"></div>
+    <div class="sig" id="tSig"></div>
+    <div class="crono" id="tCrono">0:00.0</div>
+    <div class="tot" id="tTot"></div>
+    <div class="tot" id="tNec" style="font-size:12px;margin-top:4px"></div>
+  </div>
   <button id="bBig" class="big pri">INICIAR</button>
   <div id="paleta" class="paleta" hidden></div>
   <div id="pausaBox" class="pausabox" hidden>
@@ -164,14 +199,17 @@ td input.det{min-width:200px;padding:4px 6px;font-size:13px}
   <p class="mut" style="font-size:12px;margin:0 0 6px">Un archivo .json con todas las tomas guardadas, la toma abierta y las plantillas. Restaurar agrega lo que falta; no borra nada de este dispositivo.</p>
   <div class="fila"><button id="bResp">Respaldo completo</button><button id="bRest">Restaurar respaldo</button></div>
   <input type="file" id="fRest" accept=".json,application/json" hidden>
-  <p class="mut" style="font-size:12px;margin-top:20px" id="verTxt"></p>
+  <h2>Versión</h2>
+  <div class="fila"><button id="bActualizar">Buscar actualización</button></div>
+  <p class="mut" style="font-size:12px;margin:4px 0" id="autoTxt"></p>
+  <p class="mut" style="font-size:12px;margin-top:8px" id="verTxt"></p>
 </section>
 
 </main>
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION='1.3.1';
+const VERSION='1.4.0';
 /* Puente con la app Android (solo existe dentro de la APK; en el navegador AND = null) */
 const AND=(typeof window.Android==='object'&&window.Android)?window.Android:null;
 /* Pantalla dividida: el documento principal muestra dos iframes de esta misma página (#panel=A y #panel=B).
@@ -212,6 +250,14 @@ function nomEl(t,c){return c.el==null?'(sin nombre)':(t.elementos[c.el]??'?')}
 function repDe(t,c){if(c.el==null)return '';return t.cortes.filter(x=>x.ciclo===c.ciclo&&x.el===c.el&&x.fin<=c.fin).length}
 /* Cortes en orden cronológico, con su índice original */
 function ordenados(t){return t.cortes.map((c,k)=>({c,k})).sort((a,b)=>a.c.ciclo-b.c.ciclo||a.c.fin-b.c.fin)}
+/* Los cortes guardan la posición del elemento: al mover o borrar se renumeran */
+function moverEl(de,a){const E=T.elementos;if(de===a||a<0||a>=E.length||de<0||de>=E.length)return;
+  const [x]=E.splice(de,1);E.splice(a,0,x);
+  const m=i=>{if(i==null)return i;if(i===de)return a;if(de<a&&i>de&&i<=a)return i-1;if(de>a&&i>=a&&i<de)return i+1;return i};
+  T.cortes.forEach(c=>c.el=m(c.el));T.pausas.forEach(p=>p.el=m(p.el))}
+function borrarEl(i){T.elementos.splice(i,1);
+  const m=j=>j==null?j:(j===i?null:(j>i?j-1:j));     // los cortes de la borrada quedan "sin nombre"
+  T.cortes.forEach(c=>c.el=m(c.el));T.pausas.forEach(p=>p.el=m(p.el))}
 /* ---------- Pantalla siempre encendida ---------- */
 let wl=null;
 function soltarWL(){if(PANEL)return;if(AND){try{AND.pantalla(false)}catch(e){}}if(wl){try{wl.release()}catch(e){}}}
@@ -237,7 +283,7 @@ function iniciar(){const r=T.rt;if(!LIBRE()&&!T.elementos.length){toast('Cargá 
 
 function cerrarObs(now){const r=T.rt;r.el=0;r.ciclo++;r.elIni=now;r.pausaAcc=0;
   if(r.encadenar){r.tomaIni=now;r.excl=0;r.finTs=0}else{r.estado='between';r.finTs=now}
-  toast('Observación '+(r.ciclo-1)+' completa')}
+  toast('Observación '+(r.ciclo-1)+' completa');respaldoAuto()}
 
 /* elL: en modo libre, índice de la actividad que terminó (null = sin nombre). ts: instante del toque */
 function corte(elL,ts){const r=T.rt;if(r.estado!=='running')return;const now=ts||Date.now();
@@ -245,7 +291,7 @@ function corte(elL,ts){const r=T.rt;if(r.estado!=='running')return;const now=ts|
   T.cortes.push({ciclo:r.ciclo,el,ini:r.elIni,fin:now,ms:now-r.elIni-r.pausaAcc,pausaMs:r.pausaAcc,lect:now-r.tomaIni-r.excl,cIni:r.tomaIni,cExcl:r.excl,val:'',det:''});
   r.pausaAcc=0;r.elIni=now;
   if(!LIBRE()){r.el++;if(r.el>=T.elementos.length)cerrarObs(now)}
-  try{if(AND)AND.vibrar(35);else if(navigator.vibrate)navigator.vibrate(35)}catch(e){}
+  vib(35);
   guardar();render()}
 
 /* Modo libre, "+ Nueva": el corte queda en el instante del toque; después se pide el nombre */
@@ -287,7 +333,7 @@ function finalizar(){const r=T.rt;if(r.estado==='idle')return;
   if(T.cortes.some(c=>c.ciclo===r.ciclo)){r.ciclo++;r.el=0}
   r.estado='idle';r.pausaAcc=0;r.finTs=now;
   soltarWL();
-  guardar();render();toast('Toma detenida. Guardala en Archivo.')}
+  guardar();render();respaldoAuto();toast('Toma detenida. Guardala en Archivo.')}
 
 $('#bBig').onclick=()=>{const e=T.rt.estado;if(e==='running')corte();else if(e==='paused')pausa();else iniciar()};
 $('#bPausa').onclick=pausa;$('#bUndo').onclick=deshacer;$('#bFin').onclick=finalizar;$('#bFinObs').onclick=finObs;
@@ -301,6 +347,28 @@ document.addEventListener('keydown',e=>{if(tab!=='toma'||/INPUT|SELECT|TEXTAREA/
   else if(LIBRE()&&/^[1-9]$/.test(e.key)){const i=+e.key-1;if(i<T.elementos.length)corte(i)}
   else if(LIBRE()&&(e.key==='n'||e.key==='N')){e.preventDefault();corteNueva()}
   else if(LIBRE()&&(e.key==='f'||e.key==='F'))finObs()});
+/* Botonera: mantener apretado ~0,45 s y arrastrar sobre otro botón para reordenar. Una pulsación larga nunca corta. */
+const arr={t:null,el:null,x:0,y:0,activo:false,supr:0,dest:null};
+function vib(ms){try{if(AND)AND.vibrar(ms);else if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+function arrIni(e,b){if(e.button>0)return;arr.el=b;arr.x=e.clientX;arr.y=e.clientY;arr.activo=false;arr.dest=null;
+  clearTimeout(arr.t);
+  arr.t=setTimeout(()=>{if(arr.el!==b)return;arr.activo=true;b.classList.add('arrastrando');document.body.classList.add('arrastre');vib(25)},450);
+  try{b.setPointerCapture(e.pointerId)}catch(_){}}
+document.addEventListener('pointermove',e=>{if(!arr.el)return;
+  if(!arr.activo){if(Math.hypot(e.clientX-arr.x,e.clientY-arr.y)>12){clearTimeout(arr.t);arr.el=null}return}
+  e.preventDefault();
+  const t=document.elementFromPoint(e.clientX,e.clientY),d=t&&t.closest?t.closest('#paleta button[data-i]'):null;
+  document.querySelectorAll('#paleta .destino').forEach(x=>x.classList.remove('destino'));
+  arr.dest=d&&d!==arr.el?d:null;if(arr.dest)arr.dest.classList.add('destino')},{passive:false});
+function arrFin(){clearTimeout(arr.t);if(!arr.el)return;
+  if(arr.activo){arr.supr=Date.now();   // anula solo el click que sigue a esta misma pulsación
+    if(arr.dest){moverEl(+arr.el.dataset.i,+arr.dest.dataset.i);guardar();vib(15)}
+    document.body.classList.remove('arrastre');arr.el=null;arr.activo=false;arr.dest=null;render();return}
+  arr.el=null}
+document.addEventListener('pointerup',arrFin);document.addEventListener('pointercancel',arrFin);
+document.addEventListener('touchmove',e=>{if(arr.activo)e.preventDefault()},{passive:false});
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#paleta'))e.preventDefault()});
+
 function tick(){if(tab!=='toma')return;const r=T.rt,cur=tiempoActual();
   $('#tCrono').textContent=fmtE(lectura());
   const pz=T.pausas.reduce((a,p)=>a+(p.fin-p.ini),0)+(r.estado==='paused'?Date.now()-r.pausaIni:0);
@@ -322,12 +390,16 @@ function renderToma(){const r=T.rt,N=T.elementos.length,L=LIBRE(),act=r.estado==
   const b=$('#bBig');
   b.textContent=r.estado==='running'?(L?'CORTE (sin nombre)':'CORTE'):r.estado==='paused'?'REANUDAR':'INICIAR OBS '+r.ciclo;
   b.classList.toggle('chico',L);
+  b.classList.toggle('corte',r.estado==='running');
+  $('#visor').dataset.e=r.estado;
   $('#paleta').hidden=!L;
-  if(L){const dis=r.estado!=='running'?' disabled':'';
+  if(L){const off=r.estado!=='running'?' off':'';
     $('#paleta').innerHTML=T.elementos.map((n,i)=>{const k=cObs.filter(c=>c.el===i).length;
-      return '<button data-i="'+i+'"'+dis+'>'+esc(n)+'<span class="cnt">'+(k?'×'+k+' en esta obs':'&nbsp;')+'</span></button>'}).join('')+
-      '<button class="nueva" data-nueva="1"'+dis+'>+ Nueva</button>';
-    $('#paleta').querySelectorAll('button').forEach(x=>x.onclick=()=>{if(x.dataset.nueva)corteNueva();else corte(+x.dataset.i)})}
+      return '<button class="act'+off+'" data-i="'+i+'">'+esc(n)+'<span class="cnt">'+(k?'×'+k+' en esta obs':'&nbsp;')+'</span></button>'}).join('')+
+      '<button class="nueva'+off+'" data-nueva="1">+ Nueva</button>';
+    $('#paleta').querySelectorAll('button').forEach(x=>{
+      x.onclick=()=>{if(Date.now()-arr.supr<150)return;if(x.dataset.nueva)corteNueva();else corte(+x.dataset.i)};
+      if(x.dataset.i!=null)x.addEventListener('pointerdown',e=>arrIni(e,x))})}
   $('#filaFinObs').hidden=!L;
   $('#bFinObs').disabled=!(r.estado==='running'&&cObs.length);
   $('#encTxt').textContent=L?'Encadenar observaciones (al tocar Fin de observación arranca la siguiente)':'Encadenar observaciones (al cortar el último elemento arranca la observación siguiente)';
@@ -353,19 +425,22 @@ function renderDatos(){
   $('#modoTxt').textContent=L?'Sin desglose previo: cada corte se asigna tocando la actividad que terminó; las actividades nuevas se crean durante la toma con "+ Nueva". Cada repetición se mide por separado y se numera sola. La observación se cierra con "Fin de observación".'
     :'Elementos fijos y en orden: cada corte pasa al elemento siguiente y la observación se cierra sola al cortar el último.';
   $('#elsTit').textContent=L?'Actividades':'Desglose de elementos';
-  // Con cortes registrados no se borra ni reordena: los cortes apuntan a la posición del elemento
+  // Secuencial con cortes: estructura fija. Libre: siempre se puede mover/borrar (los cortes se renumeran)
+  const editable=L||!hay;
   $('#els').innerHTML=T.elementos.length?T.elementos.map((n,i)=>'<div class="el"><span>'+(i+1)+'</span><input data-i="'+i+'" value="'+esc(n)+'">'+
-    (hay?'':'<button data-up="'+i+'">↑</button><button data-dn="'+i+'">↓</button><button data-rm="'+i+'">✕</button>')+'</div>').join('')
+    (editable?'<button data-up="'+i+'">↑</button><button data-dn="'+i+'">↓</button><button data-rm="'+i+'">✕</button>':'')+'</div>').join('')
     :(L?'<p class="mut" style="font-size:13px">Sin actividades cargadas: se crean durante la toma con "+ Nueva". También se pueden cargar algunas de antemano.</p>':'');
   $('#els').querySelectorAll('input').forEach(i=>i.oninput=()=>{T.elementos[+i.dataset.i]=i.value;guardar()});
-  $('#els').querySelectorAll('button').forEach(b=>b.onclick=()=>{const E=T.elementos;
-    if(b.dataset.up!=null){const i=+b.dataset.up;if(i>0)[E[i-1],E[i]]=[E[i],E[i-1]]}
-    else if(b.dataset.dn!=null){const i=+b.dataset.dn;if(i<E.length-1)[E[i+1],E[i]]=[E[i],E[i+1]]}
-    else if(b.dataset.rm!=null){E.splice(+b.dataset.rm,1)}
+  $('#els').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.up!=null){const i=+b.dataset.up;moverEl(i,i-1)}
+    else if(b.dataset.dn!=null){const i=+b.dataset.dn;moverEl(i,i+1)}
+    else if(b.dataset.rm!=null){const i=+b.dataset.rm,n=T.cortes.filter(c=>c.el===i).length;
+      if(n&&!confirm('"'+T.elementos[i]+'" tiene '+n+' corte(s). Si la borrás, esos cortes quedan "sin nombre" y se pueden reasignar en Resultados. ¿Borrar?'))return;
+      borrarEl(i)}
     guardar();renderDatos()});
   $('#bAddEl').textContent=L?'+ Agregar actividad':'+ Agregar elemento';
   $('#bAddEl').disabled=hay&&!L;$('#bLoadTpl').disabled=hay;
-  $('#lockMsg').textContent=hay?(L?'Ya hay cortes registrados: se pueden agregar actividades y corregir nombres, pero no borrar ni reordenar.'
+  $('#lockMsg').textContent=hay?(L?'Si borrás una actividad con cortes, esos cortes quedan "sin nombre". El orden también se cambia manteniendo apretado un botón de la botonera.'
     :'Ya hay cortes registrados: el orden y la cantidad de elementos quedan fijos (los nombres se pueden corregir).'):'';
   const tpl=lsGet(LS_TPL,{});
   $('#selTpl').innerHTML='<option value="">— plantillas —</option>'+Object.keys(tpl).map(k=>'<option>'+esc(k)+'</option>').join('')}
@@ -472,7 +547,7 @@ function descargar(nombre,txt,mime){mime=mime||'text/csv';
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nombre;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 function guardarHist(){const h=lsGet(LS_HIST,[]),i=h.findIndex(x=>x.id===T.id),c=JSON.parse(JSON.stringify(T));
-  if(i>=0)h[i]=c;else h.unshift(c);return lsSet(LS_HIST,h)}
+  if(i>=0)h[i]=c;else h.unshift(c);const ok=lsSet(LS_HIST,h);respaldoAuto();return ok}
 $('#bGuardar').onclick=()=>{toast(guardarHist()?'Toma guardada':'No se pudo guardar (almacenamiento lleno)');renderArch()};
 $('#bCSV').onclick=()=>{if(!T.cortes.length){toast('No hay cortes');return}guardarHist();descargar(nombreArch(T),aCSV(T));renderArch()};
 $('#bShare').onclick=()=>{if(!AND||!T.cortes.length){toast('No hay cortes');return}guardarHist();
@@ -480,10 +555,19 @@ $('#bShare').onclick=()=>{if(!AND||!T.cortes.length){toast('No hay cortes');retu
 $('#filaShare').hidden=!AND;
 
 /* ---------- Respaldo completo ---------- */
-$('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();
-  const r={app:'toma_tiempos',formato:1,version:VERSION,fecha:new Date().toISOString(),
+function armarRespaldo(){return {app:'toma_tiempos',formato:1,version:VERSION,fecha:new Date().toISOString(),
     actual:T,otras:CLAVES_ACTUAL.filter(k=>k!==LS_CUR).map(k=>lsGet(k,null)).filter(t=>t&&t.cortes&&t.cortes.length),
-    historial:lsGet(LS_HIST,[]),plantillas:lsGet(LS_TPL,{})};
+    historial:lsGet(LS_HIST,[]),plantillas:lsGet(LS_TPL,{})}}
+/* Respaldo automático (solo app Android). Un archivo por día, que se reescribe durante ese día.
+   Queda en Descargas, así que sobrevive a una desinstalación o a "Borrar datos". */
+const AUTO_OK=!!(AND&&typeof AND.guardarRespaldoAuto==='function');
+let rAutoT=null;
+function respaldoAuto(){if(!AUTO_OK)return;clearTimeout(rAutoT);
+  rAutoT=setTimeout(()=>{try{const r=AND.guardarRespaldoAuto('respaldo_auto_'+hoy()+'.json',JSON.stringify(armarRespaldo()));
+    if(r)lsSet('tt_auto_ult',{ts:Date.now(),ruta:r})}catch(e){}},400)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')respaldoAuto()});
+$('#bResp').onclick=()=>{if(T.cortes.length)guardarHist();
+  const r=armarRespaldo();
   const d=new Date();
   descargar('respaldo_toma_tiempos_'+hoy()+'_'+pad(d.getHours())+pad(d.getMinutes())+'.json',JSON.stringify(r),'application/json');renderArch()};
 $('#bRest').onclick=()=>{$('#fRest').value='';$('#fRest').click()};
@@ -503,7 +587,7 @@ $('#fRest').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
     h.sort((a,b)=>b.id-a.id);
     tplNuevas.forEach(k=>tpl[k]=r.plantillas[k]);
     const ok=lsSet(LS_HIST,h)&&lsSet(LS_TPL,tpl);
-    toast(ok?'Respaldo restaurado':'No se pudo restaurar (almacenamiento lleno)');renderArch()};
+    toast(ok?'Respaldo restaurado':'No se pudo restaurar (almacenamiento lleno)');respaldoAuto();renderArch()};
   rd.onerror=()=>toast('No se pudo leer el archivo');
   rd.readAsText(f,'utf-8')};
 $('#verTxt').textContent='Toma de Tiempos v'+VERSION+(AND?' · app Android':' · navegador')+(PANEL?' · panel '+PANEL:'');
@@ -527,7 +611,7 @@ function renderArch(){const h=lsGet(LS_HIST,[]);
       if(T.cortes.length)guardarHist();T=migrar(JSON.parse(JSON.stringify(lsGet(LS_HIST,[])[+b.dataset.ab])));guardar();go('res')}
     else if(b.dataset.csv!=null){const t=h[+b.dataset.csv];descargar(nombreArch(t),aCSV(t))}
     else if(b.dataset.del!=null){const t=h[+b.dataset.del];if(!confirm('¿Borrar la toma de '+(t.cab.maquina||'')+' '+t.cab.fecha+'? No se puede recuperar.'))return;
-      h.splice(+b.dataset.del,1);lsSet(LS_HIST,h);renderArch()}})}
+      h.splice(+b.dataset.del,1);lsSet(LS_HIST,h);respaldoAuto();renderArch()}})}
 
 /* ---------- Navegación ---------- */
 let tab='toma';
@@ -536,6 +620,30 @@ function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classL
 function render(){({toma:renderToma,datos:renderDatos,res:renderRes,arch:renderArch})[tab]()}
 document.querySelectorAll('nav button[data-t]').forEach(b=>b.onclick=()=>go(b.dataset.t));
 go(T.cortes.length||T.rt.estado!=='idle'?'toma':'datos');
+
+/* ---------- Actualizaciones ---------- */
+const REPO='matiasacc/toma_tiempos';
+function cmpVer(a,b){const x=a.split('.').map(Number),y=b.split('.').map(Number);
+  for(let i=0;i<3;i++){const d=(x[i]||0)-(y[i]||0);if(d)return d}return 0}
+let urlNueva='';
+async function buscarActualizacion(manual){
+  try{const r=await fetch('https://api.github.com/repos/'+REPO+'/releases/latest',{cache:'no-store'});
+    lsSet('tt_upd_ult',Date.now());
+    if(!r.ok){if(manual)toast(r.status===404?'No se pudo consultar: el repositorio no es público':'No se pudo consultar ('+r.status+')');return}
+    const j=await r.json(),v=String(j.tag_name||'').replace(/^v/,'');
+    if(!v||cmpVer(v,VERSION)<=0){if(manual)toast('Ya tenés la última versión ('+VERSION+')');return}
+    const a=(j.assets||[]).find(x=>x.name.endsWith(AND?'.apk':'.html'));
+    urlNueva=a?a.browser_download_url:j.html_url;
+    $('#avisoTxt').textContent='Versión '+v+' disponible (tenés '+VERSION+')';$('#aviso').hidden=false}
+  catch(e){if(manual)toast('Sin conexión')}}
+$('#bAvisoDesc').onclick=()=>{if(!urlNueva)return;
+  if(AND&&typeof AND.abrirUrl==='function'){try{AND.abrirUrl(urlNueva)}catch(e){}}else window.open(urlNueva,'_blank');
+  toast(AND?'Al terminar la descarga, abrila e instalala encima (no desinstales)':'Descargando…')};
+$('#bAvisoX').onclick=()=>{$('#aviso').hidden=true};
+$('#bActualizar').onclick=()=>buscarActualizacion(true);
+if(!PANEL&&Date.now()-(lsGet('tt_upd_ult',0)||0)>6*3600e3)setTimeout(()=>buscarActualizacion(false),1500);
+(()=>{const u=lsGet('tt_auto_ult',null);
+  $('#autoTxt').textContent=AUTO_OK?('Respaldo automático: Descargas/TomaTiempos'+(u?' · último '+new Date(u.ts).toLocaleString():'')):'Respaldo automático: solo en la app Android. En el navegador, usar "Respaldo completo".'})();
 
 /* ---------- Pantalla dividida ---------- */
 let divEl=null;
